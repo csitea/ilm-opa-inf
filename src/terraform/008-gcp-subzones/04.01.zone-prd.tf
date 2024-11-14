@@ -2,14 +2,14 @@
 # prd -> all -> dev -> tst
 # Gandhi Registrar
 #   |
-#   +-- Forward flok.fi to Google Cloud DNS
+#   +-- Forward ilmatarbrain.com to Google Cloud DNS
 #        |
-#        +-- flk-all-all (flok.fi zone)
+#        +-- flk-all-all (ilmatarbrain.com zone)
 #             |
-#             +-- ilm-opa-prd (mmp.flok.fi zone)
+#             +-- ilm-opa-prd (opa.ilmatarbrain.com zone)
 #                  |
-#                  +-- ilm-opa-dev (dev.mmp.flok.fi zone)
-#                  +-- ilm-opa-tst (tst.mmp.flok.fi zone)
+#                  +-- ilm-opa-dev (dev.opa.ilmatarbrain.com zone)
+#                  +-- ilm-opa-tst (tst.opa.ilmatarbrain.com zone)
 # requires also
 # gcloud config set project ${var.org}-${var.app}-prd
 # gcloud projects add-iam-policy-binding ${var.org}-${var.app}-prd   --member="serviceAccount:${var.service_account_email}"   --role="roles/dns.admin"
@@ -18,7 +18,7 @@
 # ${var.org}-${var.app}-prd@${var.org}-${var.app}-prd.iam.gserviceaccount.com
 #
 # run the following script manually before divesting the DNS zone
-# /opt/str/ilm-opa/ilm-opa-inf/src/bash/scripts/remove-org-app-prd-dns-zone.sh
+# /opt/ilm/ilm-opa/ilm-opa-inf/src/bash/scripts/remove-org-app-prd-dns-zone.sh
 
 # Creating GCP DNS sub zone for production ${var.fqn_web_app_subdomain}
 resource "google_dns_managed_zone" "application_subzone_prd" {
@@ -60,17 +60,17 @@ resource "google_dns_record_set" "spf_record_prd" {
 
 
   # dns:
-  #   domain: *domain # flok.fi
-  #   wpb_fqdn: &wpb_fqdn mmp.flok.fi
-  #   tld_domain: &tld_domain flok.fi
+  #   domain: *domain # ilmatarbrain.com
+  #   wpb_fqdn: &wpb_fqdn opa.ilmatarbrain.com
+  #   tld_domain: &tld_domain ilmatarbrain.com
   #   env_subdomain: &env_subdomain doc
-  #   fqn_env_subdomain: &fqn_env_subdomain mmp.flok.fi
-  #   fqn_web_app_subdomain: &fqn_web_app_subdomain "mmp.flok.fi"
+  #   fqn_env_subdomain: &fqn_env_subdomain opa.ilmatarbrain.com
+  #   fqn_web_app_subdomain: &fqn_web_app_subdomain "opa.ilmatarbrain.com"
   #   tld_zone_name: &tld_zone_name "flok-fi-zone"
   #   prd_zone_name: &prd_zone_name "ilm-opa-prd-subzone"
 
   # gcp:
-  #   GOOGLE_APPLICATION_CREDENTIALS: &google_application_credentials ~/.gcp/.str/key-ilm-opa-prd.json
+  #   GOOGLE_APPLICATION_CREDENTIALS: &google_application_credentials ~/.gcp/.ilm/key-ilm-opa-prd.json
   #   state_bucket: &state_bucket ilm-opa-prd-tf-state
   #   gcp_region: "europe-north1"
   #   gcp_project: "ilm-opa-prd"

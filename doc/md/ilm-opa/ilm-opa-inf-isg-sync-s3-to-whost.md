@@ -13,12 +13,12 @@ export ORG=ilm APP=opa TGT_ENV=tst ;
 
 
 # on the devops host create the
-ssh -o IdentitiesOnly=yes -i ~/.ssh/.$ORG/$ORG-$APP-$ENV-wpb.pk debian@${ORG}.${APP}.${ENV}.flok.fi mkdir -p /home/debian/.gcp/.$ORG/
+ssh -o IdentitiesOnly=yes -i ~/.ssh/.$ORG/$ORG-$APP-$ENV-wpb.pk debian@${ORG}.${APP}.${ENV}.ilmatarbrain.com mkdir -p /home/debian/.gcp/.$ORG/
 
 
 export KEY_FPATH_SA_VM=$(eval echo ~/.gcp/.$ORG/${ORG}-${APP}-${ENV}-sa-compute-instance.json)
 
-scp -o IdentitiesOnly=yes -i ~/.ssh/.$ORG/$ORG-$APP-$ENV-wpb.pk $KEY_FPATH_SA_VM debian@${ORG}.${APP}.${ENV}.flok.fi:/home/debian/.gcp/.$ORG/
+scp -o IdentitiesOnly=yes -i ~/.ssh/.$ORG/$ORG-$APP-$ENV-wpb.pk $KEY_FPATH_SA_VM debian@${ORG}.${APP}.${ENV}.ilmatarbrain.com:/home/debian/.gcp/.$ORG/
 
 
 
@@ -26,7 +26,7 @@ scp -o IdentitiesOnly=yes -i ~/.ssh/.$ORG/$ORG-$APP-$ENV-wpb.pk $KEY_FPATH_SA_VM
 go to the server
 
 ```sh
-ssh -o IdentitiesOnly=yes -i ~/.ssh/.$ORG/$ORG-$APP-$ENV-wpb.pk debian@${ORG}.${APP}.${ENV}.flok.fi
+ssh -o IdentitiesOnly=yes -i ~/.ssh/.$ORG/$ORG-$APP-$ENV-wpb.pk debian@${ORG}.${APP}.${ENV}.ilmatarbrain.com
 
 
 ```

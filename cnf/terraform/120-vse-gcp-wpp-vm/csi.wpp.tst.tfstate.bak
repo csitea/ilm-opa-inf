@@ -5,7 +5,7 @@
   "lineage": "e1d97d32-b9c0-3aef-0b7b-9fac87dbeac5",
   "outputs": {
     "DNS_entry": {
-      "value": "varisilma.vse.wpb.tst.gcp.flok.fi.",
+      "value": "varisilma.vse.wpb.tst.gcp.ilmatarbrain.com.",
       "type": "string"
     },
     "db_password": {
@@ -28,7 +28,7 @@
           "schema_version": 0,
           "attributes": {
             "description": "",
-            "dns_name": "vse.wpb.tst.gcp.flok.fi.",
+            "dns_name": "vse.wpb.tst.gcp.ilmatarbrain.com.",
             "id": "projects/vse-wpb-tst/managedZones/subzone-to-flok-fi",
             "managed_zone_id": 3100188679467937549,
             "name": "subzone-to-flok-fi",
@@ -68,8 +68,8 @@
               "env": "tst",
               "org": "csi",
               "server_ipv4": "34.88.7.23",
-              "wpb_box_domain_email": "sys+varisilma@flok.fi",
-              "wpb_box_domain_name": "varisilma.vse.wpb.tst.gcp.flok.fi."
+              "wpb_box_domain_email": "sys+varisilma@ilmatarbrain.com",
+              "wpb_box_domain_name": "varisilma.vse.wpb.tst.gcp.ilmatarbrain.com."
             }
           },
           "sensitive_attributes": [
@@ -158,9 +158,9 @@
         {
           "schema_version": 0,
           "attributes": {
-            "id": "projects/vse-wpb-tst/managedZones/subzone-to-flok-fi/rrsets/varisilma.vse.wpb.tst.gcp.flok.fi./A",
+            "id": "projects/vse-wpb-tst/managedZones/subzone-to-flok-fi/rrsets/varisilma.vse.wpb.tst.gcp.ilmatarbrain.com./A",
             "managed_zone": "subzone-to-flok-fi",
-            "name": "varisilma.vse.wpb.tst.gcp.flok.fi.",
+            "name": "varisilma.vse.wpb.tst.gcp.ilmatarbrain.com.",
             "project": "vse-wpb-tst",
             "routing_policy": [],
             "rrdatas": [

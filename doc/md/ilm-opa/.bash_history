@@ -1,16 +1,16 @@
 which gsutil
 exit
-sudo -iu www-data bash -c "mkdir -p /var/www/.gcp/.str/"
-sudo mkdir -p /var/www/.gcp/.str/ && sudo chown -R www-data:www-data /var/www/.gcp
+sudo -iu www-data bash -c "mkdir -p /var/www/.gcp/.ilm/"
+sudo mkdir -p /var/www/.gcp/.ilm/ && sudo chown -R www-data:www-data /var/www/.gcp
 cd /var/www/.gcp
 ls -la
 ls -al
 cd .csi/
 exit
 sudo mv -v ~/ilm-opa-tst-sa-compute-instance.json /var/www/
-sudo mkdir -p /var/www/.gcp/.str/ && sudo chown -R www-data:www-data /var/www/.gcp
-sudo mv -v /var/www/ilm-opa-tst-sa-compute-instance.json /var/www/.gcp/.str/
-sudo mkdir -p /var/www/.gcp/.str/ && sudo chown -R www-data:www-data /var/www/.gcp
+sudo mkdir -p /var/www/.gcp/.ilm/ && sudo chown -R www-data:www-data /var/www/.gcp
+sudo mv -v /var/www/ilm-opa-tst-sa-compute-instance.json /var/www/.gcp/.ilm/
+sudo mkdir -p /var/www/.gcp/.ilm/ && sudo chown -R www-data:www-data /var/www/.gcp
 sudo updatedb
 sudo locate settings.php
 sudo vim /var/www/html/wp-settings.php

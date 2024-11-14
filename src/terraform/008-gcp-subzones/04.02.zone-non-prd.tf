@@ -2,14 +2,14 @@
 # all -> gandhi manual-set -> prd -> dev -> tst
 # Gandhi Registrar
 #   |
-#   +-- Forward flok.fi to Google Cloud DNS
+#   +-- Forward ilmatarbrain.com to Google Cloud DNS
 #        |
-#        +-- flk-all-all (flok.fi zone)
+#        +-- flk-all-all (ilmatarbrain.com zone)
 #             |
-#             +-- ilm-opa-prd (mmp.flok.fi zone)
+#             +-- ilm-opa-prd (opa.ilmatarbrain.com zone)
 #                  |
-#                  +-- ilm-opa-dev (dev.mmp.flok.fi zone)
-#                  +-- ilm-opa-tst (tst.mmp.flok.fi zone)
+#                  +-- ilm-opa-dev (dev.opa.ilmatarbrain.com zone)
+#                  +-- ilm-opa-tst (tst.opa.ilmatarbrain.com zone)
 
 # Creating GCP DNS zone for non-production ${var.fqn_env_subdomain}
 # Creating GCP DNS zone for non-production ${var.fqn_env_subdomain}
@@ -19,8 +19,8 @@
 resource "google_dns_managed_zone" "application_subzone_non_prod" {
   count       = var.env != "prd" ? 1 : 0
   name        = var.gcp_subzone_name
-  dns_name    = "${var.fqn_env_subdomain}."  # e.g., dev.mmp.flok.fi or tst.mmp.flok.fi
-  description = "Subzone for ${var.env}.${var.fqn_web_app_subdomain}"  # e.g., dev.mmp.flok.fi
+  dns_name    = "${var.fqn_env_subdomain}."  # e.g., dev.opa.ilmatarbrain.com or tst.opa.ilmatarbrain.com
+  description = "Subzone for ${var.env}.${var.fqn_web_app_subdomain}"  # e.g., dev.opa.ilmatarbrain.com
   provider    = google
 }
 
@@ -40,7 +40,7 @@ output "prd_name_servers" {
 resource "google_dns_record_set" "delegate_non_prd_to_prd_zone" {
   count        = var.env != "prd" ? 1 : 0
   provider     = google.prd
-  name         = "${var.fqn_env_subdomain}."  # e.g., dev.mmp.flok.fi or tst.mmp.flok.fi
+  name         = "${var.fqn_env_subdomain}."  # e.g., dev.opa.ilmatarbrain.com or tst.opa.ilmatarbrain.com
   type         = "NS"
   ttl          = 21600
   managed_zone = var.prd_zone_name
@@ -69,12 +69,12 @@ resource "google_dns_record_set" "delegate_non_prd_to_prd_zone" {
 
 
   # dns:
-  #   domain: *domain # flok.fi
-  #   wpb_fqdn: &wpb_fqdn str.mpp.dev.flok.fi
-  #   tld_domain: &tld_domain flok.fi
-  #   env_subdomain: &env_subdomain str.mpp.dev
-  #   fqn_env_subdomain: &fqn_env_subdomain dev.mmp.flok.fi
-  #   fqn_web_app_subdomain: &fqn_web_app_subdomain "mmp.flok.fi"
+  #   domain: *domain # ilmatarbrain.com
+  #   wpb_fqdn: &wpb_fqdn ilm.opadev.ilmatarbrain.com
+  #   tld_domain: &tld_domain ilmatarbrain.com
+  #   env_subdomain: &env_subdomain ilm.opadev
+  #   fqn_env_subdomain: &fqn_env_subdomain dev.opa.ilmatarbrain.com
+  #   fqn_web_app_subdomain: &fqn_web_app_subdomain "opa.ilmatarbrain.com"
   #   tld_zone_name: &tld_zone_name "flok-fi-zone"
   #   prd_zone_name: &prd_zone_name "ilm-opa-prd-subzone"
 

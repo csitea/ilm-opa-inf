@@ -154,7 +154,7 @@ gsutil ls -L -b gs://$ORG-$APP-${ENV}-site/
 
 find /opt -name '*.sh' | grep -i pdf
 nslookup 34.88.79.194
-nslookup $ORG.$APP.${ENV}.flok.fi
+nslookup $ORG.$APP.${ENV}.ilmatarbrain.com
 
 ```
 

@@ -15,25 +15,25 @@ APPLICATION=ilm-opa
 find $BASE_PATH/$ORG/$APPLICATION -maxdepth 1|sort
 
 # the APPLICTION_PATH
-/opt/str/ilm-opa
+/opt/ilm/ilm-opa
 
 # the configuration project for the ilm-opa application
-/opt/str/ilm-opa/ilm-opa-cnf
+/opt/ilm/ilm-opa/ilm-opa-cnf
 
 # the infrastucture project
-/opt/str/ilm-opa/ilm-opa-inf
+/opt/ilm/ilm-opa/ilm-opa-inf
 
 # the utils project - where the local dev env utilities residue
-/opt/str/ilm-opa/ilm-opa-utl
+/opt/ilm/ilm-opa/ilm-opa-utl
 
 # the wpb ui project - the wpb ui src
-/opt/str/ilm-opa/ilm-opa-wui
+/opt/ilm/ilm-opa/ilm-opa-wui
 
 # the GLOBAL csi infra-core
-/opt/str/ilm-opa/infra-core
+/opt/ilm/ilm-opa/infra-core
 
 # the GLOBAL template generator project
-/opt/str/ilm-opa/tpl-gen
+/opt/ilm/ilm-opa/tpl-gen
 ```
 
 Of course your BASE_PATH COULD be ( but probably shouldn't ) also anything like /var, ~/opt , ~/var etc...
@@ -119,16 +119,16 @@ make do-setup-ilm-opa-all        #  01.02 setup the whole ilm-opa dockerized set
 ```bash
 #to-history
 
-export STEP=012-static-sites; ORG=ilm APP=opa ENV=dev TPL_SRC=/opt/str/ilm-opa/ilm-opa-inf SRC=/opt/str/ilm-opa/ilm-opa-cnf/ TGT=/opt/str/ilm-opa/ilm-opa-cnf make do-generate-config-for-step
+export STEP=012-static-sites; ORG=ilm APP=opa ENV=dev TPL_SRC=/opt/ilm/ilm-opa/ilm-opa-inf SRC=/opt/ilm/ilm-opa/ilm-opa-cnf/ TGT=/opt/ilm/ilm-opa/ilm-opa-cnf make do-generate-config-for-step
 
 # dev
-while read -r step ; do echo "export STEP=$step; ORG=ilm APP=opa ENV=dev TPL_SRC=/opt/str/ilm-opa/ilm-opa-inf SRC=/opt/str/ilm-opa/ilm-opa-cnf/ TGT=/opt/str/ilm-opa/ilm-opa-cnf make -C ../ilm-opa-utl do-generate-config-for-step"; done < <(ls -1 ../ilm-opa-inf/src/terraform|grep -v modules|sort)
+while read -r step ; do echo "export STEP=$step; ORG=ilm APP=opa ENV=dev TPL_SRC=/opt/ilm/ilm-opa/ilm-opa-inf SRC=/opt/ilm/ilm-opa/ilm-opa-cnf/ TGT=/opt/ilm/ilm-opa/ilm-opa-cnf make -C ../ilm-opa-utl do-generate-config-for-step"; done < <(ls -1 ../ilm-opa-inf/src/terraform|grep -v modules|sort)
 
 # tst
-while read -r step ; do echo "export STEP=$step; ORG=ilm APP=opa ENV=dev TPL_SRC=/opt/str/ilm-opa/ilm-opa-inf SRC=/opt/str/ilm-opa/ilm-opa-cnf/ TGT=/opt/str/ilm-opa/ilm-opa-cnf make -C ../ilm-opa-utl do-generate-config-for-step"; done < <(ls -1 ../ilm-opa-inf/src/terraform|grep -v modules|sort)
+while read -r step ; do echo "export STEP=$step; ORG=ilm APP=opa ENV=dev TPL_SRC=/opt/ilm/ilm-opa/ilm-opa-inf SRC=/opt/ilm/ilm-opa/ilm-opa-cnf/ TGT=/opt/ilm/ilm-opa/ilm-opa-cnf make -C ../ilm-opa-utl do-generate-config-for-step"; done < <(ls -1 ../ilm-opa-inf/src/terraform|grep -v modules|sort)
 
 # prd
-while read -r step ; do echo "export STEP=$step; ORG=ilm APP=opa ENV=dev TPL_SRC=/opt/str/ilm-opa/ilm-opa-inf SRC=/opt/str/ilm-opa/ilm-opa-cnf/ TGT=/opt/str/ilm-opa/ilm-opa-cnf make -C ../ilm-opa-utl do-generate-config-for-step"; done < <(ls -1 ../ilm-opa-inf/src/terraform|grep -v modules|sort)
+while read -r step ; do echo "export STEP=$step; ORG=ilm APP=opa ENV=dev TPL_SRC=/opt/ilm/ilm-opa/ilm-opa-inf SRC=/opt/ilm/ilm-opa/ilm-opa-cnf/ TGT=/opt/ilm/ilm-opa/ilm-opa-cnf make -C ../ilm-opa-utl do-generate-config-for-step"; done < <(ls -1 ../ilm-opa-inf/src/terraform|grep -v modules|sort)
 
 ```
 

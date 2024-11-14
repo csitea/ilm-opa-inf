@@ -13,7 +13,7 @@ provider "google" {
   project     = var.gcp_project
   region      = var.gcp_region
   zone        = var.gcp_zone
-  #                          /home/ysg/.gcp/.str/key-str-sol-dev.json
+  #                          /home/ysg/.gcp/.ilm/key-str-sol-dev.json
   credentials = file(pathexpand("~/.gcp/.${var.org}/key-${var.org}-${var.app}-${var.env}.json"))
 }
 
@@ -23,11 +23,11 @@ provider "google" {
   project     = "${var.org}-${var.app}-prd"
   region      = var.gcp_region
   zone        = var.gcp_zone
-  #                          /home/ysg/.gcp/.str/key-str-sol-prd.json
+  #                          /home/ysg/.gcp/.ilm/key-str-sol-prd.json
   credentials = file(pathexpand("~/.gcp/.${var.org}/key-${var.org}-${var.app}-prd.json"))
 }
 
-# OBS all-all and NOT sol-all, because the flok.fi is in all-all
+# OBS all-all and NOT sol-all, because the ilmatarbrain.com is in all-all
 # as thee MIGHT be other applications in the future not only solutinos
 # and yes this might be a troublesome naming convention one day
 

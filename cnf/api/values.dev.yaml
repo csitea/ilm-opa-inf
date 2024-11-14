@@ -9,4 +9,4 @@ ingress:
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-Ext-2018-06
     alb.ingress.kubernetes.io/security-groups: sg-0d39c585f96cd2201
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:817680717920:certificate/20cc5af4-a603-495a-b313-6a1fbb50f4c9
-  host: apiv2-doc.csi.wpb.dev.aws.flok.fi
+  host: apiv2-doc.csi.wpb.dev.aws.ilmatarbrain.com

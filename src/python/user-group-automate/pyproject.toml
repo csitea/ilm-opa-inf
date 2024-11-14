@@ -2,8 +2,8 @@
 name = "user_group_automate"
 version = "1.2.0"
 description = "An util to generate the "
-authors = ["CSITEA OY  <info@flok.fi>"]
-maintainers = ["CSITEA OY  <info@flok.fi>"]
+authors = ["CSITEA OY  <info@ilmatarbrain.com>"]
+maintainers = ["CSITEA OY  <info@ilmatarbrain.com>"]
 
 packages = [
     { include = "console_utils/*" }

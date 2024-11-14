@@ -1,27 +1,27 @@
 {
   "replyUrlsWithType": [
     {
-      "url": "https://webfront.csi.wpb.dev.aws.flok.fi/token/authorization-code",
+      "url": "https://webfront.csi.wpb.dev.aws.ilmatarbrain.com/token/authorization-code",
       "type": "Web"
     },
     {
-      "url": "https://webfront.csi.wpb.dev.aws.flok.fi/redirect/mobile",
+      "url": "https://webfront.csi.wpb.dev.aws.ilmatarbrain.com/redirect/mobile",
       "type": "Web"
     },
     {
-      "url": "https://webfront.csi.wpb.stg.aws.flok.fi/token/authorization-code",
+      "url": "https://webfront.csi.wpb.stg.aws.ilmatarbrain.com/token/authorization-code",
       "type": "Web"
     },
     {
-      "url": "https://webfront.csi.wpb.stg.aws.flok.fi/redirect/mobile",
+      "url": "https://webfront.csi.wpb.stg.aws.ilmatarbrain.com/redirect/mobile",
       "type": "Web"
     },
     {
-      "url": "https://webfront.csi.wpb.stg.aws.flok.fi/token/authorization-code",
+      "url": "https://webfront.csi.wpb.stg.aws.ilmatarbrain.com/token/authorization-code",
       "type": "Web"
     },
     {
-      "url": "https://webfront.csi.wpb.tst.aws.flok.fi/token/authorization-code",
+      "url": "https://webfront.csi.wpb.tst.aws.ilmatarbrain.com/token/authorization-code",
       "type": "Web"
     },
     {
@@ -50,7 +50,7 @@
     },
 
     {
-      "url": "https://webapp.tst.wpb.flok.fi/token/authorization-code",
+      "url": "https://webapp.tst.wpb.ilmatarbrain.com/token/authorization-code",
       "type": "Web"
     },
     {

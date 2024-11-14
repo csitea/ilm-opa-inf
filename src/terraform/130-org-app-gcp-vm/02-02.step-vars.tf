@@ -26,7 +26,7 @@ variable google_compute_instance_machine_image {
 variable "box_domain_email" {
   type        = string
   description = "The email to use for the SSL requests with certbot"
-  default = "sys@flok.fi"
+  default = "sys@ilmatarbrain.com"
 }
 
 variable "google_compute_boot_disk_size" {
