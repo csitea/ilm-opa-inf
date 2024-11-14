@@ -1,0 +1,739 @@
+---
+- name: Install Wordpress on Debian 12 with MariaDB and Nginx
+  hosts: servers
+  vars:
+    db_name: "wordpress_db"
+    db_user: "wordpress"
+
+  become: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install OS utils, RDB and web required packages
+      ansible.builtin.apt:
+        name:
+          - vim
+          - mlocate
+          - git
+          - gh
+          - jq
+          - perl
+          - unzip
+          - expect
+          - nginx
+          - python3-pip
+          - mariadb-server
+          - dnsutils
+        state: present
+
+    - name: Add Ondrej PHP PPA for PHP 8.3 on Debian 12
+      block:
+        - name: Ensure apt-transport-https is installed
+          ansible.builtin.apt:
+            name: apt-transport-https
+            state: present
+
+    - name: Download and add the PHP signing key
+      ansible.builtin.command: >
+        curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+      args:
+        creates: /usr/share/keyrings/deb.sury.org-php.gpg
+
+    - name: Add Ondrej PHP repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ bookworm main"
+        state: present
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install PHP related required packages
+      ansible.builtin.apt:
+        name:
+          - php8.3-fpm
+          - php8.3-mysql
+          - php8.3-curl
+          - php8.3-gd
+          - php8.3-intl
+          - php8.3-mbstring
+          - php8.3-soap
+          - php8.3-xml
+          - php8.3-xmlrpc
+          - php8.3-zip
+          - php8.3-mbstring
+          - php-cli
+          - php-xml
+        state: present
+
+    - name: Update Nginx main configuration
+      ansible.builtin.copy:
+        content: |
+          user www-data;
+          worker_processes auto;
+          pid /run/nginx.pid;
+          include /etc/nginx/modules-enabled/*.conf;
+
+          events {
+              worker_connections 768;
+              # multi_accept on;
+          }
+
+          http {
+              limit_req_zone $binary_remote_addr zone=one:10m rate=30r/m;
+              fastcgi_read_timeout 90s;
+              server_names_hash_bucket_size 128;
+              client_max_body_size 50M;
+
+              ##
+              # Basic Settings
+              ##
+
+              sendfile on;
+              tcp_nopush on;
+              types_hash_max_size 2048;
+              # server_tokens off;
+
+              # server_names_hash_bucket_size 64;
+              # server_name_in_redirect off;
+
+              include /etc/nginx/mime.types;
+              default_type application/octet-stream;
+
+              ##
+              # SSL Settings
+              ##
+
+              ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE
+              ssl_prefer_server_ciphers on;
+
+              ##
+              # Logging Settings
+              ##
+
+              access_log /var/log/nginx/access.log;
+              error_log /var/log/nginx/error.log;
+
+              ##
+              # Gzip Settings
+              ##
+
+              gzip on;
+
+              # gzip_vary on;
+              # gzip_proxied any;
+              # gzip_comp_level 6;
+              # gzip_buffers 16 8k;
+              # gzip_http_version 1.1;
+              # gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+              ##
+              # Virtual Host Configs
+              ##
+
+              include /etc/nginx/conf.d/*.conf;
+              include /etc/nginx/sites-enabled/*;
+          }
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: test and restart nginx
+
+    - name: Write Nginx default site configuration
+      ansible.builtin.copy:
+        content: |
+          server {
+              listen 80 default_server;
+              listen [::]:80 default_server;
+              root /var/www/html;
+              index index.php index.html index.htm index.nginx-debian.html;
+              server_name _;
+
+              # Security headers
+              add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval' http://{{ fqn_host_name }}/" always;
+              add_header X-Frame-Options "SAMEORIGIN" always;
+              add_header X-XSS-Protection "1; mode=block" always;
+              add_header X-Content-Type-Options "nosniff" always;
+              add_header Referrer-Policy "no-referrer-when-downgrade" always;
+              add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always; # Force HTTPS
+              add_header Permissions-Policy "geolocation=(), midi=(), notifications=(), push=(), sync-xhr=(), microphone=(), camera=(), magnetometer=(), gyroscope=(), speaker=(), vibrate=(), fullscreen=(), payment=()" always; # Control permissions
+
+              # Disable server tokens
+              server_tokens off;
+
+              # Limit methods
+              if ($request_method !~ ^(GET|HEAD|POST)$) {
+                  return 444;
+              }
+
+              location / {
+                  try_files $uri $uri/ /index.php?$args;
+              }
+
+              location ~ \.php$ {
+                  include snippets/fastcgi-php.conf;
+                  fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+                  fastcgi_intercept_errors on;
+                  fastcgi_param PHP_VALUE "expose_php = Off";
+              }
+
+              # Deny access to hidden files
+              location ~ /\. {
+                  deny all;
+                  access_log off;
+                  log_not_found off;
+              }
+
+              # Deny access to wp-config.php
+              location = /wp-config.php {
+                  deny all;
+              }
+
+              location /pub/ {
+                  autoindex off;
+                  expires 30d;
+                  add_header Cache-Control "public, max-age=2592000";
+              }
+
+              # Deny access to certain file types
+              location ~* \.(sql|log|md|zip|git|env)$ {
+                  deny all;
+              }
+
+              # Limit request body size
+              client_max_body_size 200M;
+
+              # Enable GZIP compression
+              gzip on;
+              gzip_vary on;
+              gzip_min_length 1000;
+              gzip_proxied expired no-cache no-store private auth;
+              gzip_types text/plain text/css application/json application/javascript application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+              gzip_comp_level 6;
+
+              # Proxy to S3 bucket for media files
+              # this setting has tobe tested extensively staring at 2024-07-18
+              location /wp-content/uploads/ {
+                  proxy_pass https://storage.googleapis.com/{{ org }}-{{ app }}-{{ env }}-site/;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  expires 30d;
+                  add_header Cache-Control "public, max-age=2592000";
+              }
+          }
+        dest: /etc/nginx/sites-available/default
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - test and restart nginx
+
+    - name: Update php.ini settings
+      ansible.builtin.lineinfile:
+        path: /etc/php/8.3/fpm/php.ini
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: "^max_execution_time", line: "max_execution_time = 90" }
+        - { regexp: "^upload_max_filesize", line: "upload_max_filesize = 64M" }
+        - { regexp: "^post_max_size", line: "post_max_size = 64M" }
+        - { regexp: "^max_execution_time", line: "max_execution_time = 300" }
+      notify:
+        - restart php8.3-fpm
+
+    - name: Install PyMySQL required library
+      ansible.builtin.shell: |
+        apt install -y python3-pymysql
+
+    - name: Ensure /var/log/mysql/ directory exists with proper permissions
+      ansible.builtin.file:
+        path: /var/log/mysql/
+        state: directory
+        owner: mysql
+        group: mysql
+        mode: "0755"
+
+    - name: Set timezone and logging configuration in /etc/mysql/my.cnf
+      ansible.builtin.shell: |
+        sudo timedatectl set-timezone Europe/Helsinki
+
+    - name: Add timezone and logging configuration to /etc/mysql/my.cnf
+      ansible.builtin.lineinfile:
+        path: /etc/mysql/my.cnf
+        insertafter: EOF
+        line: "{{ item }}"
+        create: yes
+      loop:
+        - "[mysqld]"
+        - "default-time-zone = 'SYSTEM'"
+        - "general_log = 1"
+        - "general_log_file = /var/log/mysql/general.log"
+      notify: Restart MySQL
+
+    - name: Start and enable Nginx and MariaDB services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - nginx
+        - mariadb
+
+    - name: Mysql set root password
+      community.mysql.mysql_user:
+        login_user: root
+        login_password: "{{ db_password_root }}"
+        name: root
+        check_implicit_admin: true
+        password: "{{ db_password_root }}"
+        host: localhost
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Create MariaDB user 'wordpress'
+      community.mysql.mysql_user:
+        login_user: root
+        login_password: "{{ db_password_root }}"
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Create MariaDB database
+      community.mysql.mysql_db:
+        login_user: root
+        login_password: "{{ db_password_root }}"
+        name: "{{ db_name }}"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Check if Wordpress is already downloaded
+      ansible.builtin.stat:
+        path: "/tmp/wordpress.tar.gz"
+      register: wordpress_file
+
+    - name: Download WordPress
+      ansible.builtin.get_url:
+        url: "https://wordpress.org/wordpress-6.6.2.tar.gz"
+        dest: "/tmp/wordpress.tar.gz"
+        mode: "777"
+      when: not wordpress_file.stat.exists
+
+    - name: Extract WordPress archive
+      ansible.builtin.unarchive:
+        src: "/tmp/wordpress.tar.gz"
+        dest: "/var/www/"
+        remote_src: true
+
+    - name: Create the public directory
+      ansible.builtin.shell: |
+        mkdir -p /var/www/html/pub/
+
+    - name: Remove all files and directories in /var/www/html/
+      ansible.builtin.shell: |
+        rm -rf /var/www/html/*
+
+    - name: Move WordPress files to Nginx root directory
+      ansible.builtin.shell: |
+        mv /var/www/wordpress/* /var/www/html/
+
+    - name: Copy sample WordPress config file
+      ansible.builtin.shell: |
+        cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+
+    - name: Set folder and file permissions
+      ansible.builtin.file:
+        path: "/var/www/html/{{ item }}"
+        owner: www-data
+        group: www-data
+      loop:
+        - "wp-content"
+        - "wp-config.php"
+
+    - name: Update WordPress config for database settings
+      ansible.builtin.lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - {
+            regexp: "define\\( 'DB_NAME', 'database_name_here' \\);",
+            line: "define('DB_NAME', '{{ db_name }}');",
+          }
+        - {
+            regexp: "define\\( 'DB_USER', 'username_here' \\);",
+            line: "define('DB_USER', '{{ db_user }}');",
+          }
+        - {
+            regexp: "define\\( 'DB_PASSWORD', 'password_here' \\);",
+            line: "define('DB_PASSWORD', '{{ db_password }}');",
+          }
+
+    # define('WP_DEBUG', true); // Enable WP_DEBUG mode
+    - name: Add WP_DEBUG settings to wp-config.php
+      ansible.builtin.lineinfile:
+        path: /var/www/html/wp-config.php
+        insertafter: EOF
+        line: |
+          define('WP_DEBUG_DISPLAY', true); // Display errors on the screen
+          define('WP_DEBUG_LOG', true); // Enable error logging to wp-content/debug.log
+          define('WP_DEBUG_LOG_PATH', '/var/log/nginx/all-debug.log'); // Custom path for debug log
+      ignore_errors: no
+
+    - name: File upload related settings to wp-config.php
+      ansible.builtin.lineinfile:
+        path: /var/www/html/wp-config.php
+        insertafter: EOF
+        line: |
+          @ini_set('upload_max_filesize', '64M'); // Set maximum upload size
+          @ini_set('post_max_size', '64M'); // Set maximum post size
+          @ini_set('max_execution_time', '300'); // Set maximum execution time
+      ignore_errors: no
+
+    - name: Restart Nginx to apply changes
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+
+    - name: Install software-properties-common
+      apt:
+        name: software-properties-common
+        state: present
+
+    - name: Synchronize plugin directory to the remote server
+      ansible.builtin.synchronize:
+        src: /opt/{{ org }}/{{ org }}-{{ app }}/{{ org }}-{{ app }}-wui/src/web/html/wp-content/plugins/
+        dest: /var/www/html/wp-content/plugins/
+        recursive: yes
+        rsync_opts:
+          - "--chmod=0644"
+          - "--chown=www-data:www-data"
+      delegate_to: localhost
+
+    - name: Synchronize theme directory to the remote server
+      ansible.builtin.synchronize:
+        src: /opt/{{ org }}/{{ org }}-{{ app }}/{{ org }}-{{ app }}-wui/src/web/html/wp-content/themes
+        dest: /var/www/html/wp-content/themes/
+        recursive: yes
+        rsync_opts:
+          - "--chmod=0644"
+          - "--chown=www-data:www-data"
+      delegate_to: localhost
+
+    - name: Find .zip files in the target directory (themes)
+      ansible.builtin.find:
+        paths: "/var/www/html/wp-content/themes/"
+        patterns: "*.zip"
+      register: zip_files_themes
+
+    - name: Unzip each .zip file found (themes)
+      ansible.builtin.unarchive:
+        src: "{{ item.path }}"
+        dest: "/var/www/html/wp-content/themes/"
+        remote_src: yes
+        extra_opts: ["-o"]
+      loop: "{{ zip_files_themes.files }}"
+      when: zip_files_themes.matched > 0
+
+    - name: Find .zip files in the target directory ()
+      ansible.builtin.find:
+        paths: "/var/www/html/wp-content/plugins/"
+        patterns: "*.zip"
+      register: zip_files_plugins
+
+    - name: Unzip each .zip file found
+      ansible.builtin.unarchive:
+        src: "{{ item.path }}"
+        dest: "/var/www/html/wp-content/plugins/"
+        remote_src: yes
+        extra_opts: ["-o"]
+      loop: "{{ zip_files_plugins.files }}"
+      when:
+        zip_files_plugins.matched > 0
+
+        # TODO
+        # - name: Ensure request_terminate_timeout is set in php-fpm.conf
+        #   ansible.builtin.lineinfile:
+        #     path: /etc/php/8.3/fpm/php-fpm.conf
+        #     regexp: '^\s*request_terminate_timeout'
+        #     line: "request_terminate_timeout = 90s"
+        #     state: present
+        #   notify:
+        #     - restart php8.3-fpm
+
+    - name: Restart php8.3-fpm to apply changes
+      ansible.builtin.systemd:
+        name: php8.3-fpm
+        state: restarted
+
+    - name: Install Certbot and its NGINX plugin
+      apt:
+        name:
+          - certbot
+          - python3-certbot-nginx
+        state: present
+
+    - name: Check if DNS has propagated
+      environment:
+        PATH: "/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin"
+      shell: |
+        /usr/bin/nslookup {{ fqn_host_name }}
+      register: nslookup_result
+      retries: 10
+      delay: 30 # Wait for 30 seconds between retries
+      until: nslookup_result.rc == 0
+      ignore_errors: yes
+
+    # - name: Ensure Certbot is installed and set up for NGINX for staging
+    #   when: nslookup_result.rc == 0 and use_staging == 'true'
+    #   command: certbot --nginx -d {{ fqn_host_name }} -d www.{{ fqn_host_name }} --non-interactive --staging --agree-tos --email {{ box_domain_email }} --redirect
+    #   args:
+    #     creates: /etc/letsencrypt/live/{{ fqn_host_name }}/fullchain.pem
+    #  when: nslookup_result.rc == 0 and use_staging == 'false'
+
+    - name: create the certbot directory
+      ansible.builtin.shell: |
+        mkdir -p /etc/letsencrypt/live/{{ fqn_host_name }}
+        chmod -R 0777 /etc/letsencrypt/live/{{ fqn_host_name }}
+
+    - name: Ensure Certbot is installed and set up for NGINX for production
+      ansible.builtin.shell: |
+        certbot --nginx -d {{ fqn_host_name }} -d www.{{ fqn_host_name }} --non-interactive --agree-tos --email {{ box_domain_email }} --redirect
+      args:
+        creates: /etc/letsencrypt/live/{{ fqn_host_name }}/fullchain.pem
+
+    - name: Reload Nginx to apply configuration changes
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded
+
+    - name: Download & install WP-CLI
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        dest: /usr/local/bin/wp
+        mode: "0755"
+
+    - name: Make WP-CLI executable
+      ansible.builtin.file:
+        path: /usr/local/bin/wp
+        mode: "0755"
+
+    - name: Install WordPress with WP-CLI
+      ansible.builtin.shell: |
+        wp core download --path=/var/www/html --allow-root
+        wp core install --url="http://{{ fqn_host_name }}" --title="{{ env }}" --admin_user="wp_admin" --admin_password="{{ wp_admin_password }}" --admin_email="{{ box_domain_email }}" --path=/var/www/html --allow-root
+
+    - name: Change ownership of /var/www/html to www-data
+      ansible.builtin.file:
+        path: /var/www/html
+        owner: www-data
+        group: www-data
+        recurse: yes
+
+    - name: Add custom PS1 prompt to debian user's bashrc
+      ansible.builtin.lineinfile:
+        path: /home/debian/.bashrc
+        line: "export PS1='`date \"+%F %T\"` \\u@\\h  \\w \\n\\n  '"
+        create: yes
+      become_user: debian
+
+    - name: Create the gcp secrets directory
+      ansible.builtin.shell: |
+        mkdir -p /home/appusr/.gcp/.{{ org }} || true
+      delegate_to: localhost
+
+    - name: Authenticate with Google Cloud using the provided credential file
+      ansible.builtin.shell: |
+        gcloud auth activate-service-account --key-file=/home/appusr/.gcp/.{{ org }}/key-{{ org }}-{{ app }}-{{ env }}.json
+      environment:
+        GOOGLE_APPLICATION_CREDENTIALS: "/home/appusr/.gcp/.{{ org }}/key-{{ org }}-{{ app }}-{{ env }}.json"
+      register: gcloud_auth
+      delegate_to: localhost
+
+    - name: Set the Google Cloud project
+      ansible.builtin.shell: |
+        export PROJECT_ID="{{ org }}-{{ app }}-{{ env }}"
+        gcloud config set project ${PROJECT_ID}
+      environment:
+        GOOGLE_APPLICATION_CREDENTIALS: "/home/appusr/.gcp/.{{ org }}/key-{{ org }}-{{ app }}-{{ env }}.json"
+      register: gcloud_project
+      delegate_to: localhost
+
+    - name: Create the service account key file
+      ansible.builtin.shell: |
+        gcloud iam service-accounts keys create /home/appusr/.gcp/.{{ org }}/{{ org }}-{{ app }}-{{ env }}-sa-compute-instance.json \
+          --iam-account sa-compute-instance@{{ org }}-{{ app }}-{{ env }}.iam.gserviceaccount.com
+      environment:
+        GOOGLE_APPLICATION_CREDENTIALS: "/home/appusr/.gcp/.{{ org }}/key-{{ org }}-{{ app }}-{{ env }}.json"
+      register: service_account_key
+      delegate_to: localhost
+
+    - name: Set the environment variable for the service account key
+      ansible.builtin.shell: |
+        export GOOGLE_APPLICATION_CREDENTIALS="/home/appusr/.gcp/.{{ org }}/{{ org }}-{{ app }}-{{ env }}-sa-compute-instance.json"
+      register: set_env
+      delegate_to: localhost
+
+    - name: Upsert GCP Secret Manager secret for the service account key
+      ansible.builtin.shell: |
+        SECRET_NAME="{{ org }}-{{ app }}-{{ env }}-sa-compute-key"
+        DATA_FILE="/home/appusr/.gcp/.{{ org }}/{{ org }}-{{ app }}-{{ env }}-sa-compute-instance.json"
+        CREDENTIALS_FILE="/home/appusr/.gcp/.{{ org }}/key-{{ org }}-{{ app }}-{{ env }}.json"
+
+        Set the Google Cloud project
+        gcloud config set project {{ org }}-{{ app }}-{{ env }}
+
+        Check if the secret already exists
+        if gcloud secrets describe ${SECRET_NAME} --project="{{ org }}-{{ app }}-{{ env }}" >/dev/null 2>&1; then
+          echo "Secret ${SECRET_NAME} already exists. Adding a new version..."
+          GOOGLE_APPLICATION_CREDENTIALS="${CREDENTIALS_FILE}" gcloud secrets versions add ${SECRET_NAME} \
+            --data-file=${DATA_FILE}
+        else
+          echo "Creating secret ${SECRET_NAME}..."
+          GOOGLE_APPLICATION_CREDENTIALS="${CREDENTIALS_FILE}" gcloud secrets create ${SECRET_NAME} \
+            --data-file=${DATA_FILE} \
+            --replication-policy=automatic
+        fi
+      environment:
+        GOOGLE_APPLICATION_CREDENTIALS: "/home/appusr/.gcp/.{{ org }}/key-{{ org }}-{{ app }}-{{ env }}.json"
+      register: create_secret
+      delegate_to: localhost
+
+    - name: Authenticate using the service account key
+      ansible.builtin.shell: |
+        sudo chmod 0775 /home/appusr/.gcp/.{{ org }}/{{ org }}-{{ app }}-{{ env }}-sa-compute-instance.json
+        gcloud auth activate-service-account --key-file=/home/appusr/.gcp/.{{ org }}/{{ org }}-{{ app }}-{{ env }}-sa-compute-instance.json
+      environment:
+        GOOGLE_APPLICATION_CREDENTIALS: "/home/appusr/.gcp/.{{ org }}/{{ org }}-{{ app }}-{{ env }}-sa-compute-instance.json"
+      register: activate_service_account
+      delegate_to: localhost
+
+    - name: Verify access to the bucket
+      ansible.builtin.shell: |
+        gsutil uniformbucketlevelaccess set off gs://{{ org }}-{{ app }}-{{ env }}-site
+        gsutil uniformbucketlevelaccess get gs://{{ org }}-{{ app }}-{{ env }}-site
+
+        gsutil ls gs://{{ org }}-{{ app }}-{{ env }}-site
+      environment:
+        GOOGLE_APPLICATION_CREDENTIALS: "/home/appusr/.gcp/.{{ org }}/{{ org }}-{{ app }}-{{ env }}-sa-compute-instance.json"
+      register: verify_access
+      delegate_to: localhost
+
+    - name: Print the output of the bucket verification
+      ansible.builtin.debug:
+        msg: "{{ verify_access.stdout }}"
+      delegate_to: localhost
+
+    - name: Create the db adminer directory
+      ansible.builtin.shell: |
+        mkdir -p /var/www/adminer/
+        chmod 0775 /var/www/adminer/
+        chmod 755 /var/www/html/wp-content/plugins
+
+    - name: Install Adminer
+      ansible.builtin.get_url:
+        url: https://github.com/vrana/adminer/releases/download/v4.8.1/adminer-4.8.1.php
+        dest: /var/www/adminer/index.php
+        mode: "0644"
+      notify: test and restart nginx
+
+    - name: Create Adminer Nginx configuration with SSL
+      ansible.builtin.blockinfile:
+        path: /etc/nginx/sites-available/adminer
+        create: yes
+        block: |
+          server {
+              listen 8443 ssl;
+              server_name {{ fqn_host_name }};
+
+              ssl_certificate /etc/letsencrypt/live/{{ fqn_host_name }}/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/{{ fqn_host_name }}/privkey.pem;
+              ssl_protocols TLSv1.2 TLSv1.3;
+              ssl_prefer_server_ciphers off;
+
+              root /var/www/adminer;
+              index index.php;
+
+              location / {
+                  try_files $uri $uri/ =404;
+              }
+
+              location = /index.php {
+                  allow 127.0.0.1;
+                  allow all;
+
+                  fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                  fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+                  fastcgi_index index.php;
+                  include fastcgi_params;
+                  fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                  fastcgi_param PATH_INFO $fastcgi_path_info;
+              }
+          }
+
+      notify: test and restart nginx
+
+    - name: Enable Adminer Nginx configuration
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/adminer
+        dest: /etc/nginx/sites-enabled/adminer
+        state: link
+      notify: test and restart nginx
+
+    - name: Set up Adminer access toggle
+      ansible.builtin.copy:
+        content: |
+          #!/bin/bash
+
+          if [ "$1" = "on" ]; then
+              sed -i 's/deny all;/allow all;/' /etc/nginx/sites-available/adminer
+              echo "Adminer access enabled"
+          elif [ "$1" = "off" ]; then
+              sed -i 's/allow all;/deny all;/' /etc/nginx/sites-available/adminer
+              echo "Adminer access disabled"
+          else
+              echo "Usage: $0 [on|off]"
+              exit 1
+          fi
+
+          systemctl reload nginx
+        dest: /usr/local/bin/toggle_adminer
+        mode: "0755"
+
+    - name: Ensure Adminer is initially enabled
+      ansible.builtin.command: /usr/local/bin/toggle_adminer on
+      notify: test and restart nginx
+
+    - name: Update WordPress site title using wp-cli
+      shell: wp option update blogname "{{ fqn_host_name }}" --path=/var/www/html --allow-root
+      args:
+        chdir: /var/www/html # Set the working directory where wp-cli should be run
+      register: wp_output # Register the output of the command
+
+    - name: Display the output of wp-cli command
+      debug:
+        var: wp_output.stdout # Display the output from the previous task
+
+  #  HANDLERS
+  handlers:
+    - name: test and restart nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+
+    - name: restart php8.3-fpm
+      ansible.builtin.systemd:
+        name: php8.3-fpm
+        state: restarted
+
+    - name: Restart MySQL
+      ansible.builtin.service:
+        name: mysql
+        state: restarted

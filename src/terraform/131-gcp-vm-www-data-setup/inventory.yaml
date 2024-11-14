@@ -1,0 +1,3 @@
+plugin: cloud.terraform.terraform_provider
+# state file not needed !!!
+# state_file: /opt/tqa/tqa-whd-infra-app/cnf/terraform/032-gcp-rocketchat/tqa.wwh.tst.tfstate

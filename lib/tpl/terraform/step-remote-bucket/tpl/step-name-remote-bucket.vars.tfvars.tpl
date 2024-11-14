@@ -1,0 +1,7 @@
+org                      = "{{ ORG }}"
+app                      = "{{ APP }}"
+env                      = "{{ ENV }}"
+shared_credentials_files = "{{ aws["AWS_SHARED_CREDENTIALS_FILE"] }}"
+shared_config_files      = "{{ aws["AWS_CONFIG_FILE"] }}"
+region                   = "{{ steps["step-name"]["AWS_REGION"] }}"
+profile                  = "{{ steps["step-name"]["AWS_PROFILE"] }}"

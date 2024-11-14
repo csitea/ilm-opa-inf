@@ -1,0 +1,5 @@
+profile         = "{{ steps["step-name"]["AWS_PROFILE"] }}"
+region         = "{{ steps["step-name"]["AWS_REGION"] }}"
+bucket         = "{{ ORG }}-{{ APP }}-{{ ENV }}.step-name-remote-bucket.terraform-state"
+key            = "{{ ORG }}-{{ APP }}-{{ ENV }}-step-name/terraform.tfstate"
+dynamodb_table = "terraform-lock-{{ ORG }}-{{ APP }}-{{ ENV }}-step-name"

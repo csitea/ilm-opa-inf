@@ -1,0 +1,164 @@
+FROM --platform=amd64 python:slim-bookworm
+
+# START ::: args-vars
+ARG UID
+ARG GID
+ARG BASE_PATH
+ARG PROJ
+ARG ORG_DIR
+ARG PROJ_PATH
+ARG APPUSR
+ARG APPGRP
+ARG HOME_PROJ_PATH
+ARG MOUNT_WORK_DIR
+ARG DOCKER_SHELL
+ARG DOCKER_HOME
+ARG RUN_SCRIPT
+ARG DOCKER_INIT_SCRIPT
+ARG TF_VERSION
+ARG TERRAFORM_VERSION
+ARG MODULE
+
+ENV BASE_PATH=$BASE_PATH
+ENV ORG=$ORG
+ENV PROJ=$PROJ
+ENV ORG_DIR=$ORG_DIR
+ENV PROJ_PATH=$PROJ_PATH
+ENV EDITOR="vim"
+ENV APPUSR=$APPUSR
+ENV APPGRP=$APPGRP
+ENV PS1='`date "+%F %T"` \u@\h  \w \n\n  '
+ENV HOME_PROJ_PATH=$HOME_PROJ_PATH
+ENV MOUNT_WORK_DIR=$MOUNT_WORK_DIR
+ENV DOCKER_SHELL=$DOCKER_SHELL
+ENV DOCKER_HOME=$DOCKER_HOME
+ENV RUN_SCRIPT=$RUN_SCRIPT
+ENV DOCKER_INIT_SCRIPT=$DOCKER_INIT_SCRIPT
+ENV MODULE=$MODULE
+ENV TF_VERSION=$TF_VERSION
+ENV TERRAFORM_VERSION=$TERRAFORM_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+VOLUME $MOUNT_WORK_DIR
+
+# STOP  ::: args-vars
+
+
+
+# START ::: install alpine OS utils
+
+RUN apt-get update && apt-get install -y --no-install-recommends  \
+  apt-utils perl-base jq vim wget curl sudo zip unzip make bsdmainutils tzdata \
+  git openssh-server ansible gnupg
+# STOP  ::: install alpine OS utils
+
+
+
+
+# START ::: install yq
+# [BUG | TODO] ::: if you specify the version, somehow the binary wont run.
+RUN sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+  && sudo chmod a+x /usr/local/bin/yq
+# STOP  ::: install yq
+
+
+
+# # START ::: python build utils
+# RUN RUN apt-get update && apt-get install -y  \
+#     build-base gcc openssl-dev python3-dev libmagic  \
+#     python3-dev jpeg-dev zlib-dev coreutils libffi-dev util-linux
+
+# # STOP  ::: python build utils
+
+
+# START ::: install aws cli
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+  && unzip awscliv2.zip \
+  && sudo ./aws/install \
+  && rm -rf ./aws awscliv2.zip
+# STOP  ::: install aws cli
+
+# START ::: install gcloud cli
+RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+RUN sudo apt-get update && sudo apt-get install google-cloud-cli
+# STOP ::: install gcloud cli
+
+# START ::: install terraform and tfswitch
+# install tfswitch to handle multiple terraform versions
+RUN curl -L https://raw.githubusercontent.com/warrensbox/terraform-switcher/release/install.sh | bash
+# STOP  ::: install terraform and tfswitch
+
+#install kubeclt
+RUN  curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+  install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
+  rm kubectl
+
+# START ::: Enable host to container edit of proj code on ubuntu and mac.
+RUN test -z $(getent group $GID | cut -d: -f1) || \
+  groupmod -g $((GID+1000)) $(getent group $GID | cut -d: -f1)
+
+# isntall python pip
+RUN wget https://bootstrap.pypa.io/get-pip.py ; sudo python3 get-pip.py ; sudo rm -v get-pip.py
+
+RUN pip3 install --upgrade pip wheel
+
+
+
+# START ::: add-os-user
+RUN if getent group $GID; then groupmod -g $((GID+2000)) $(getent group $GID | cut -d: -f1); fi
+
+# create a APPGRP and APPUSR
+# START ::: add-os-user
+RUN set -x ; groupadd -g "$GID" "$APPGRP" && \
+  useradd \
+  --gid "$GID" \
+  --non-unique \
+  --shell "$DOCKER_SHELL" \
+  --home-dir "/home/appusr" \
+  --uid "$UID" \
+  --groups "$APPGRP" "$APPUSR" && exit 0 ; exit 1
+
+# create home directory and change its ownership to APPUSR:APPGRP
+RUN mkdir -p "/home/$APPUSR" && chown "$APPUSR":"$APPGRP" "/home/$APPUSR"
+
+
+RUN echo "$APPUSR ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN echo "export PS1=\"$PS1\"" >> $DOCKER_HOME/.bashrc && \
+  chown -R $APPUSR:$APPGRP $DOCKER_HOME && \
+  chmod -R 0775 $DOCKER_HOME
+
+
+USER $APPUSR
+
+# STOP  ::: add-os-user
+
+#install anbible plugin
+RUN ansible-galaxy collection install cloud.terraform
+
+
+
+# START ::: copy-proj-dir
+
+# The issue is that this only copies one of the dirs, infra-app needs infra-core and run.sh
+# but copying infra-core could lead to caching issues.
+COPY --chown=$APPUSR:$APPGRP . ${HOME_PROJ_PATH}
+COPY --chown=$APPUSR:$APPGRP ./src/bash/run/run.sh ${HOME_PROJ_PATH}/src/bash/run/run.sh
+
+# Create the 'run' symlink
+WORKDIR $HOME_PROJ_PATH
+RUN ln -sfn src/bash/run/run.sh run
+
+
+# STOP  ::: copy-proj-dir
+
+
+
+# Workdir is /opt/$org/$product/
+WORKDIR $PROJ_PATH
+# Add terraform binary to path, otherwise exec cannot find it
+# even if we echo into ~/.bashrc or ~/.profile or /etc/profile
+ENV PATH=/home/$APPUSR/bin:$PATH
+RUN chmod 0755 "$HOME_PROJ_PATH/src/bash/scripts/docker-init-${MODULE}.sh"
+CMD exec /bin/bash -c "$HOME_PROJ_PATH/src/bash/scripts/docker-init-${MODULE}.sh"

@@ -1,0 +1,7 @@
+.PHONY: do-generate-conf-for-step ## @-> generate the conf for the steps
+do-generate-conf-for-step: demand_var-ENV  demand_var-ORG demand_var-APP demand_var-STEP
+	$(eval CLOUD := $(shell if [[ "$(STEP)" == *gcp* ]]; then echo "gcp"; else echo "aws"; fi))
+	echo BASE_PATH $(BASE_PATH)
+	docker exec $(ORG)-$(ORG)-$(APP)-infra-conf-conf-validator-con /bin/bash -c 'set -e; cd $(BASE_PATH)/$(ORG)/$(ORG)-$(APP)-infra-conf/src/python/conf-validator && poetry run validate $(BASE_PATH)/$(ORG)/$(ORG)-$(APP)-infra-conf/$(APP)/$(ENV).env.yaml $(ENV)' || { echo "Validation failed, stopping"; exit 1; }
+	docker exec -e ORG=$(ORG) -e APP=$(APP) -e ENV=$(ENV) -e STEP=$(STEP) -e DATA_KEY_PATH='.env.steps["$(STEP)"]' -e TPL_SRC=$(BASE_PATH)/$(ORG)/$(ORG)-$(APP)-infra-conf/src/tpl/%app%/%env%/tf/$(STEP) -e CNF_SRC=$(BASE_PATH)/$(ORG)/$(ORG)-$(APP)-infra-conf/$(APP)/$(ENV).env.yaml -e TGT=$(BASE_PATH)/$(ORG)/$(ORG)-$(APP)-infra-conf $(ORG)-tpl-gen-tpl-gen-con /bin/bash -c 'cd $(BASE_PATH)/$(ORG)/tpl-gen && make tpl-gen'
+	docker exec -e ORG=$(ORG) -e APP=$(APP) -e ENV=$(ENV) -e STEP=$(STEP) -e DATA_KEY_PATH='.env.steps["$(STEP)"]' -e TPL_SRC=$(BASE_PATH)/$(ORG)/$(ORG)-$(APP)-infra-conf/src/tpl/%app%/%env%/tf/$(STEP)*.tpl -e CNF_SRC=$(BASE_PATH)/$(ORG)/$(ORG)-$(APP)-infra-conf/$(APP)/$(ENV).env.yaml -e TGT=$(BASE_PATH)/$(ORG)/$(ORG)-$(APP)-infra-conf $(ORG)-tpl-gen-tpl-gen-con /bin/bash -c 'cd $(BASE_PATH)/$(ORG)/tpl-gen && make tpl-gen'

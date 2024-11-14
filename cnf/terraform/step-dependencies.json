@@ -1,0 +1,30 @@
+{
+    "002-aws-accounts": null,
+    "003-aws-scps": null,
+    "004-aws-iam": null,
+    "006-individual-users": null,
+    "007-dns": null,
+    "008-ecr": null,
+    "015-s3-buckets": null,
+    "009-budgets": null,
+    "010-static-sites": null,
+    "011-static-sites": null,
+    "020-rds": null,
+    "030-eks": null,
+    "035-cloudflare-facade": [
+        "007-dns"
+    ],
+    "033-jenkins-x": [
+        "030-eks"
+    ],
+    "050-wireguard": null,
+    "051-splunk": [
+        "050-wireguard"
+    ],
+    "060-location-service": null,
+    "070-coupling": [
+        "020-rds",
+        "030-eks",
+        "050-wireguard"
+    ]
+}

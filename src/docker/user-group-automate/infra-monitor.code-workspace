@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../str/infra-monitor"
+		},
+		{
+			"path": "../../../../../str/ilm-opa-infra"
+		},
+		{
+			"path": "../../../../../str/csi-infra-conf"
+		},
+		{
+			"path": "../../.."
+		},
+
+	]
+}

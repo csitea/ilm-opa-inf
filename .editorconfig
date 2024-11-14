@@ -1,0 +1,39 @@
+# Top-level properties
+root = true
+
+# Default settings for all files
+[*]
+editor.fontWeight = normal
+javascript.updateImportsOnFileMove.enabled = always
+editor.wordWrap = on
+editor.renderWhitespace = all
+editor.tabSize = 2
+editor.detectIndentation = false
+editor.insertSpaces = true
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = tab
+indent_size = 2
+
+
+# Settings for Terraform files
+[*.tf]
+editor.formatOnSave = true
+indent_style = space
+indent_size = 2
+
+# Settings for Bash files
+[*.sh]
+editor.formatOnSave = true
+indent_style = space
+indent_size = 2
+
+
+# Settings for Terraform files
+[*.yaml]
+editor.formatOnSave = true
+indent_style = space
+indent_size = 2
+

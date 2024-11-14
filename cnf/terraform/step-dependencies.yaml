@@ -1,0 +1,53 @@
+# ==================================================================================
+# This file handles the dependencies of every terraform step.
+# When provisioning, read top-down, when divesting read bottom-up.
+#
+# [WARNING] ::: This file do not handle external dependencies. If you added a bucket
+#               in 015-s3-buckets or a certificate in 007-dns, you'll need to keep
+#               track of the soft dependencies yourself.
+#
+# ==================================================================================
+
+# [The basic block ] ===============================================================
+# This step is so fundamental that we cannot work without it. It is in a
+# state where it does not need adjustments and we can safely assume that
+# it always exists and never needs to be re-provisioned.
+002-aws-accounts:
+
+# SCPs are provisioned earlier in the process, but do not become a dependency
+# of other steps, since we can reprovision this anytime.
+003-aws-scps:
+
+# Can be reapplied anytime to fix role permissions and credentials syncing
+004-aws-iam:
+
+# Will be constantly reprovisioned to add/edit users.
+006-individual-users:
+
+# Will be constantly reprovisioned to add/edit dns entries and/or certificates
+007-dns:
+
+# Whenever a new ECR is needed
+008-ecr:
+
+# Whenever a new bucket is needed
+015-s3-buckets:
+
+# [ Main Blocks ] ===============================================================
+009-budgets:
+010-static-sites:
+011-static-sites:
+020-rds:
+030-eks:
+035-cloudflare-facade:
+  - 007-dns
+033-jenkins-x:
+  - 030-eks
+050-wireguard:
+051-splunk:
+  - 050-wireguard
+060-location-service:
+070-coupling:
+  - 020-rds
+  - 030-eks
+  - 050-wireguard

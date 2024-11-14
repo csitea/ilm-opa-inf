@@ -1,0 +1,94 @@
+FROM python:alpine3.17
+
+# TODO: parametrize
+EXPOSE 4200
+
+ARG ENV
+ARG UID
+ARG GID
+ARG PROJ
+ARG ORG_DIR
+ARG BASE_PATH
+
+
+ENV BASE_PATH=$BASE_PATH
+ENV ORG_DIR=$ORG_DIR
+ENV PROJ=$PROJ
+ENV APPUSR=appusr
+ENV APPGRP=appgrp
+ENV MODULE="infra-monitor-ui"
+ENV PS1="`date \"+%F %T\"` \u@\h  \w \n\n  "
+
+ENV PROJ_PATH="$BASE_PATH/$ORG_DIR/$PROJ"
+ENV HOME_PROJ_PATH="/home/${APPUSR}${BASE_PATH}/$ORG_DIR/$PROJ"
+ENV EDITOR="vim"
+ENV ENV=$ENV
+ENV TERM="xterm-256color"
+
+VOLUME $PROJ_PATH
+
+# START ::: install bins
+RUN apk update && \
+  apk upgrade && \
+  apk add --no-cache \
+  bash binutils vim perl jq wget \
+  curl zip unzip busybox-extras \
+  su-exec sudo shadow net-tools \
+  build-base gcc openssl-dev git \
+  libmagic ttf-freefont make jq \
+  python3-dev jpeg-dev zlib-dev \
+  util-linux nodejs npm
+
+# RUN npm install -g @angular/cli
+
+# STOP ::: install bins
+
+RUN pip install wheel
+
+# START ::: Enable host to container edit of proj code on ubuntu and mac.
+RUN test -z $(getent group $GID | cut -d: -f1) || \
+  groupmod -g $((GID+1000)) $(getent group $GID | cut -d: -f1)
+
+RUN set -x ; addgroup -g "$GID" -S "$APPGRP" && \
+  adduser \
+  --disabled-password \
+  -g "$GID" \
+  -D \
+  -s "/bin/bash" \
+  -h "/home/$APPUSR" \
+  -u "$UID" \
+  -G "$APPGRP" "$APPUSR" && exit 0 ; exit 1
+
+RUN echo "$APPUSR ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN echo "export PS1=\"$PS1\"" >> /home/$APPUSR/.bashrc
+
+USER $APPUSR
+ENV USER=$APPUSR
+ENV GROUP=$APPGRP
+
+# STOP  ::: enable host to container edit of proj code on ubuntu and mac.
+
+ADD --chown=$APPUSR:$APPGRP "." "${HOME_PROJ_PATH}"
+
+RUN sudo chmod 0775 $HOME_PROJ_PATH/src/bash/run/docker-init-${MODULE}.sh
+
+# stop ::: adding OS APPUSER and APPGROUP
+
+
+USER $APPUSR
+WORKDIR $PROJ_PATH
+
+
+# start ::: the global npm modules
+RUN bash ${HOME_PROJ_PATH}/run -a do_alpine_check_install_global_npm_modules
+# stop  ::: the global npm modules
+
+# start ::: install npm modules
+# RUN export TGT_DIR=${HOME_PROJ_PATH}/src/nodejs/${MODULE} && \
+#   bash ${HOME_PROJ_PATH}/run -a do_check_install_npm_modules
+# stop  ::: install npm modules
+
+# but use the proj root dir to write the code on and interact
+WORKDIR $PROJ_PATH
+
+CMD exec /bin/bash -c "${HOME_PROJ_PATH}/src/bash/run/docker-init-${MODULE}.sh"

@@ -1,0 +1,17 @@
+flok.fi. 	3600 	MX 	1 	ASPMX.L.GOOGLE.COM.
+flok.fi. 	3600 	MX 	5 	ALT1.ASPMX.L.GOOGLE.COM.
+flok.fi. 	3600 	MX 	5 	ALT2.ASPMX.L.GOOGLE.COM.
+flok.fi. 	3600 	MX 	10 	ALT3.ASPMX.L.GOOGLE.COM.
+flok.fi. 	3600 	MX 	10 	ALT4.ASPMX.L.GOOGLE.COM.
+flok.fi. 	3600 	MX 	15 rsem2n3wtqy2gclwgph6ivsdesqqhthigielkhnjljvxi2mdopjq.mx-verification.google.com.
+flok.fi. 	172800 	NS 	ns-143.awsdns-17.com.
+flok.fi. 	172800 	NS 	ns-1182.awsdns-19.org.
+flok.fi. 	172800 	NS 	ns-934.awsdns-52.net.
+flok.fi. 	172800 	NS 	ns-1704.awsdns-21.co.uk.
+flok.fi. 	900 	SOA 	ns-143.awsdns-17.com. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400
+flok.fi. 	300 	TXT 	"v=spf1 include:_spf.google.com ~all"
+_1e0688da81f14d7b165c7f3b01bfe082.flok.fi. 	60 	CNAME 	_bd4a67c769750c7b45cdf65e16edc149.jddtvkljgg.acm-validations.aws.
+_d317b0896ec61e5720de038a99be2c69.org.wpb.env.domain.com. 	60 	CNAME 	_9fadb21bf8ce625f73c94ae453fadd6c.hnyhpvdqhv.acm-validations.aws.
+_65d655c1316feb2422a9d6f66c353423.csi.wpb.flok.fi. 	60 	CNAME 	_4deebc34d69c8be0a1ce410788750aac.hnyhpvdqhv.acm-validations.aws.
+_8f24330be1e42421fcd4aaafa47235e6.tst.flok.fi. 	60 	CNAME 	_c31d3fe2c9643d93a9517cb1c5cce290.hnyhpvdqhv.acm-validations.aws.
+_8922665d586b7735731e05509f82bfbd.csi.wpb.tst.flok.fi. 	60 	CNAME 	_68046d827ce2c7ef2bafe5312e8a8824.hnyhpvdqhv.acm-validations.aws.

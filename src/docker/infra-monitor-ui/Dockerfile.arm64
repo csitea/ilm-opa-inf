@@ -1,0 +1,99 @@
+FROM python:alpine3.17
+
+EXPOSE 4200
+
+ARG ENV
+ARG ORG
+ARG APP
+ARG UID
+ARG GID
+ARG PROJ
+ARG BASE_PATH
+ARG ORG_DIR
+
+
+ENV PROJ=$PROJ
+ENV ORG=$ORG
+ENV APP=$APP
+ENV APPUSR=appusr
+ENV APPGRP=appgrp
+ENV PS1="`date \"+%F %T\"` \u@\h  \w \n\n  "
+ENV ORG_DIR=$ORG_DIR
+ENV PROJ_PATH="$BASE_PATH/$ORG_DIR/$PROJ"
+ENV EDITOR="vim"
+ENV ENV=$ENV
+ENV MODULE="infra"
+ENV TERM="xterm-256color"
+
+VOLUME $PROJ_PATH
+
+# START ::: install bins
+RUN apk update && \
+  apk upgrade && \
+  apk add --no-cache \
+  bash binutils vim perl jq wget \
+  curl zip unzip busybox-extras \
+  su-exec sudo shadow net-tools \
+  build-base gcc openssl-dev git \
+  libmagic ttf-freefont make jq \
+  python3-dev jpeg-dev zlib-dev \
+  util-linux
+
+# STOP ::: install bins
+
+RUN pip install wheel
+
+# START ::: Enable host to container edit of proj code on ubuntu and mac.
+RUN test -z $(getent group $GID | cut -d: -f1) || \
+  groupmod -g $((GID+1000)) $(getent group $GID | cut -d: -f1)
+
+RUN set -x ; addgroup -g "$GID" -S "$APPGRP" && \
+  adduser \
+  --disabled-password \
+  -g "$GID" \
+  -D \
+  -s "/bin/bash" \
+  -h "/home/$APPUSR" \
+  -u "$UID" \
+  -G "$APPGRP" "$APPUSR" && exit 0 ; exit 1
+
+RUN echo "$APPUSR ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN echo "export PS1=\"$PS1\"" >> /home/$APPUSR/.bashrc
+
+USER $APPUSR
+ENV USER=$APPUSR
+ENV GROUP=$APPGRP
+
+# STOP  ::: enable host to container edit of proj code on ubuntu and mac.
+
+ADD --chown=$APPUSR:$APPGRP "." "/home/$APPUSR$PROJ_PATH"
+
+
+
+# stop ::: adding OS APPUSER and APPGROUP
+
+
+
+
+USER $APPUSR
+WORKDIR $PROJ_PATH
+
+
+# start ::: deploy nodejs
+RUN bash /home/$APPUSR$PROJ_PATH/src/bash/run/run.sh -a do_alpine_check_install_nodejs
+# stop  ::: deploy nodejs
+
+# start ::: the global npm modules
+RUN bash /home/$APPUSR$PROJ_PATH/src/bash/run/run.sh -a do_alpine_check_install_global_npm_modules
+# stop  ::: the global npm modules
+
+# start ::: install npm modules
+#RUN export TGT_DIR=/home/$APPUSR$PROJ_PATH/src/nodejs/status-monitor-ui && \
+#  bash /home/$APPUSR$PROJ_PATH/src/bash/run/run.sh -a do_check_install_npm_modules
+# stop  ::: install npm modules
+
+
+# but use the proj root dir to write the code on and interact
+WORKDIR $PROJ_PATH
+
+CMD exec /bin/bash -c "$HOME_PROJ_PATH/src/bash/run/docker-init-monitor-ui.sh"

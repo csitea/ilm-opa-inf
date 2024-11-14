@@ -1,0 +1,12 @@
+# Environment specific values
+
+ingress:
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internal # STG env MUST not expose the api-doc for now
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-Ext-2018-06
+    alb.ingress.kubernetes.io/security-groups: sg-0d39c585f96cd2201
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:817680717920:certificate/20cc5af4-a603-495a-b313-6a1fbb50f4c9
+  host: apiv2-doc.csi.wpb.dev.aws.flok.fi

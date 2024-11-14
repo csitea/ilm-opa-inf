@@ -1,0 +1,617 @@
+{
+  "version": 4,
+  "terraform_version": "1.2.2",
+  "serial": 19,
+  "lineage": "e1d97d32-b9c0-3aef-0b7b-9fac87dbeac5",
+  "outputs": {
+    "DNS_entry": {
+      "value": "varisilma.vse.wpb.tst.gcp.flok.fi.",
+      "type": "string"
+    },
+    "db_password": {
+      "value": "rF0xSVzpwG",
+      "type": "string"
+    },
+    "instance_ssh_cmd": {
+      "value": "ssh -i /home/appusr/.ssh/.str/vse-wpb-tst-varisilma.pk debian@34.88.7.23",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "google_dns_managed_zone",
+      "name": "subzone_flok",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "description": "",
+            "dns_name": "vse.wpb.tst.gcp.flok.fi.",
+            "id": "projects/vse-wpb-tst/managedZones/subzone-to-flok-fi",
+            "managed_zone_id": 3100188679467937549,
+            "name": "subzone-to-flok-fi",
+            "name_servers": [
+              "ns-cloud-c1.googledomains.com.",
+              "ns-cloud-c2.googledomains.com.",
+              "ns-cloud-c3.googledomains.com.",
+              "ns-cloud-c4.googledomains.com."
+            ],
+            "project": "vse-wpb-tst",
+            "visibility": "public"
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "ansible_host",
+      "name": "wpb_vm_wordpress",
+      "provider": "provider[\"registry.terraform.io/ansible/ansible\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "groups": [
+              "wordpress"
+            ],
+            "id": "34.88.7.23",
+            "name": "34.88.7.23",
+            "variables": {
+              "ansible_python_interpreter": "/usr/bin/python3",
+              "ansible_ssh_private_key_file": "/home/appusr/.ssh/.str/vse-wpb-tst-varisilma.pk",
+              "ansible_user": "debian",
+              "app": "wpb",
+              "db_password": "rF0xSVzpwG",
+              "env": "tst",
+              "org": "csi",
+              "server_ipv4": "34.88.7.23",
+              "wpb_box_domain_email": "sys+varisilma@flok.fi",
+              "wpb_box_domain_name": "varisilma.vse.wpb.tst.gcp.flok.fi."
+            }
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "variables"
+              },
+              {
+                "type": "index",
+                "value": {
+                  "value": "db_password",
+                  "type": "string"
+                }
+              }
+            ]
+          ],
+          "private": "bnVsbA==",
+          "dependencies": [
+            "data.google_dns_managed_zone.subzone_flok",
+            "google_dns_record_set.wpb_record",
+            "module.gcp_compute_instance.google_compute_disk.disk",
+            "module.gcp_compute_instance.google_compute_instance.virtual_machine",
+            "module.ssh_key.tls_private_key.ssh_key_vm",
+            "null_resource.scan_keys",
+            "random_password.db_password",
+            "time_sleep.wait_30_seconds"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_compute_firewall",
+      "name": "allow_http_protocols",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "allow": [
+              {
+                "ports": [
+                  "80",
+                  "443"
+                ],
+                "protocol": "tcp"
+              }
+            ],
+            "creation_timestamp": "2023-11-01T07:13:36.359-07:00",
+            "deny": [],
+            "description": "",
+            "destination_ranges": [],
+            "direction": "INGRESS",
+            "disabled": false,
+            "enable_logging": null,
+            "id": "projects/vse-wpb-tst/global/firewalls/allow-https-vse-wpb-tst",
+            "log_config": [],
+            "name": "allow-https-vse-wpb-tst",
+            "network": "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/global/networks/default",
+            "priority": 1000,
+            "project": "vse-wpb-tst",
+            "self_link": "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/global/firewalls/allow-https-vse-wpb-tst",
+            "source_ranges": [
+              "0.0.0.0/0"
+            ],
+            "source_service_accounts": [],
+            "source_tags": [],
+            "target_service_accounts": [],
+            "target_tags": [
+              "allow-https-vse-wpb-tst"
+            ],
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_dns_record_set",
+      "name": "wpb_record",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "projects/vse-wpb-tst/managedZones/subzone-to-flok-fi/rrsets/varisilma.vse.wpb.tst.gcp.flok.fi./A",
+            "managed_zone": "subzone-to-flok-fi",
+            "name": "varisilma.vse.wpb.tst.gcp.flok.fi.",
+            "project": "vse-wpb-tst",
+            "routing_policy": [],
+            "rrdatas": [
+              "34.88.7.23"
+            ],
+            "ttl": 300,
+            "type": "A"
+          },
+          "sensitive_attributes": [],
+          "private": "bnVsbA==",
+          "dependencies": [
+            "data.google_dns_managed_zone.subzone_flok",
+            "module.gcp_compute_instance.google_compute_disk.disk",
+            "module.gcp_compute_instance.google_compute_instance.virtual_machine",
+            "module.ssh_key.tls_private_key.ssh_key_vm"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_secret_manager_secret",
+      "name": "ssh_key_vm",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "annotations": {},
+            "create_time": "2023-11-01T14:13:36.178494Z",
+            "expire_time": "",
+            "id": "projects/vse-wpb-tst/secrets/ssh-key-vse-wpb-tst-wpb-vm",
+            "labels": {},
+            "name": "projects/445417383409/secrets/ssh-key-vse-wpb-tst-wpb-vm",
+            "project": "vse-wpb-tst",
+            "replication": [
+              {
+                "automatic": true,
+                "user_managed": []
+              }
+            ],
+            "rotation": [],
+            "secret_id": "ssh-key-vse-wpb-tst-wpb-vm",
+            "timeouts": null,
+            "topics": [],
+            "ttl": null,
+            "version_aliases": {}
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_secret_manager_secret_version",
+      "name": "ssh_key_vm_secret_version",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "create_time": "2023-11-01T14:13:39.119428Z",
+            "destroy_time": "",
+            "enabled": true,
+            "id": "projects/445417383409/secrets/ssh-key-vse-wpb-tst-wpb-vm/versions/1",
+            "name": "projects/445417383409/secrets/ssh-key-vse-wpb-tst-wpb-vm/versions/1",
+            "secret": "projects/vse-wpb-tst/secrets/ssh-key-vse-wpb-tst-wpb-vm",
+            "secret_data": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtz\nc2gtZWQyNTUxOQAAACDvX4gdBoHZ5E9E7ncnHut8mtgKgxahpLfP4TGHDZO3awAA\nAIg4NG+GODRvhgAAAAtzc2gtZWQyNTUxOQAAACDvX4gdBoHZ5E9E7ncnHut8mtgK\ngxahpLfP4TGHDZO3awAAAECS8wiP6mcBBXlSR6MXULzz9xdKN4ZRInF1IHZZWkgk\nne9fiB0GgdnkT0Tudyce63ya2AqDFqGkt8/hMYcNk7drAAAAAAECAwQF\n-----END OPENSSH PRIVATE KEY-----\n",
+            "timeouts": null,
+            "version": "1"
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_data"
+              }
+            ]
+          ],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "google_secret_manager_secret.ssh_key_vm",
+            "module.ssh_key.tls_private_key.ssh_key_vm"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "scan_keys",
+      "provider": "provider[\"registry.terraform.io/hashicorp/null\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "4515259714838271806",
+            "triggers": {
+              "run_on_new_instance": "5095664424215110642"
+            }
+          },
+          "sensitive_attributes": [],
+          "dependencies": [
+            "module.gcp_compute_instance.google_compute_disk.disk",
+            "module.gcp_compute_instance.google_compute_instance.virtual_machine",
+            "module.ssh_key.tls_private_key.ssh_key_vm",
+            "time_sleep.wait_30_seconds"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "random_password",
+      "name": "db_password",
+      "provider": "provider[\"registry.terraform.io/hashicorp/random\"]",
+      "instances": [
+        {
+          "schema_version": 3,
+          "attributes": {
+            "bcrypt_hash": "$2a$10$ZhMkvR.oAmv4.YsVcMndEe20CrCxMInifd5BdHaJiVQ75I39Fx09W",
+            "id": "none",
+            "keepers": null,
+            "length": 10,
+            "lower": true,
+            "min_lower": 0,
+            "min_numeric": 0,
+            "min_special": 0,
+            "min_upper": 0,
+            "number": true,
+            "numeric": true,
+            "override_special": null,
+            "result": "rF0xSVzpwG",
+            "special": false,
+            "upper": true
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "time_sleep",
+      "name": "wait_30_seconds",
+      "provider": "provider[\"registry.terraform.io/hashicorp/time\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "create_duration": "30s",
+            "destroy_duration": null,
+            "id": "2023-11-01T14:14:31Z",
+            "triggers": null
+          },
+          "sensitive_attributes": [],
+          "dependencies": [
+            "module.gcp_compute_instance.google_compute_disk.disk",
+            "module.gcp_compute_instance.google_compute_instance.virtual_machine",
+            "module.ssh_key.tls_private_key.ssh_key_vm"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.gcp_compute_instance",
+      "mode": "managed",
+      "type": "google_compute_disk",
+      "name": "disk",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "async_primary_disk": [],
+            "creation_timestamp": "2023-11-01T07:13:36.065-07:00",
+            "description": "",
+            "disk_encryption_key": [],
+            "guest_os_features": [],
+            "id": "projects/vse-wpb-tst/zones/europe-north1-a/disks/wpb-tst-varisilma-vm-disk-data",
+            "image": "",
+            "label_fingerprint": "42WmSpB8rSM=",
+            "labels": {},
+            "last_attach_timestamp": "2023-11-01T07:13:50.474-07:00",
+            "last_detach_timestamp": "",
+            "licenses": [],
+            "name": "wpb-tst-varisilma-vm-disk-data",
+            "physical_block_size_bytes": 4096,
+            "project": "vse-wpb-tst",
+            "provisioned_iops": 0,
+            "provisioned_throughput": 0,
+            "self_link": "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/zones/europe-north1-a/disks/wpb-tst-varisilma-vm-disk-data",
+            "size": 20,
+            "snapshot": "",
+            "source_disk": "",
+            "source_disk_id": "",
+            "source_image_encryption_key": [],
+            "source_image_id": "",
+            "source_snapshot_encryption_key": [],
+            "source_snapshot_id": "",
+            "timeouts": null,
+            "type": "pd-ssd",
+            "users": [
+              "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/zones/europe-north1-a/instances/wpb-tst-varisilma-vm"
+            ],
+            "zone": "europe-north1-a"
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "module": "module.gcp_compute_instance",
+      "mode": "managed",
+      "type": "google_compute_instance",
+      "name": "virtual_machine",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 6,
+          "attributes": {
+            "advanced_machine_features": [],
+            "allow_stopping_for_update": null,
+            "attached_disk": [
+              {
+                "device_name": "wpb-tst-varisilma-vm-disk-data",
+                "disk_encryption_key_raw": "",
+                "disk_encryption_key_sha256": "",
+                "kms_key_self_link": "",
+                "mode": "READ_WRITE",
+                "source": "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/zones/europe-north1-a/disks/wpb-tst-varisilma-vm-disk-data"
+              }
+            ],
+            "boot_disk": [
+              {
+                "auto_delete": true,
+                "device_name": "persistent-disk-0",
+                "disk_encryption_key_raw": "",
+                "disk_encryption_key_sha256": "",
+                "initialize_params": [
+                  {
+                    "image": "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-11-bullseye-v20231010",
+                    "labels": {},
+                    "resource_manager_tags": {},
+                    "size": 30,
+                    "type": "pd-ssd"
+                  }
+                ],
+                "kms_key_self_link": "",
+                "mode": "READ_WRITE",
+                "source": "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/zones/europe-north1-a/disks/wpb-tst-varisilma-vm"
+              }
+            ],
+            "can_ip_forward": false,
+            "confidential_instance_config": [],
+            "cpu_platform": "Intel Broadwell",
+            "current_status": "RUNNING",
+            "deletion_protection": false,
+            "description": "",
+            "desired_status": null,
+            "enable_display": false,
+            "guest_accelerator": [],
+            "hostname": "",
+            "id": "projects/vse-wpb-tst/zones/europe-north1-a/instances/wpb-tst-varisilma-vm",
+            "instance_id": "5095664424215110642",
+            "label_fingerprint": "42WmSpB8rSM=",
+            "labels": {},
+            "machine_type": "e2-micro",
+            "metadata": {
+              "ssh-keys": "debian:ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9fiB0GgdnkT0Tudyce63ya2AqDFqGkt8/hMYcNk7dr"
+            },
+            "metadata_fingerprint": "4ycMar-K5Io=",
+            "metadata_startup_script": null,
+            "min_cpu_platform": "",
+            "name": "wpb-tst-varisilma-vm",
+            "network_interface": [
+              {
+                "access_config": [
+                  {
+                    "nat_ip": "34.88.7.23",
+                    "network_tier": "PREMIUM",
+                    "public_ptr_domain_name": ""
+                  }
+                ],
+                "alias_ip_range": [],
+                "ipv6_access_config": [],
+                "ipv6_access_type": "",
+                "name": "nic0",
+                "network": "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/global/networks/default",
+                "network_ip": "10.166.0.10",
+                "nic_type": "",
+                "queue_count": 0,
+                "stack_type": "IPV4_ONLY",
+                "subnetwork": "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/regions/europe-north1/subnetworks/default",
+                "subnetwork_project": "vse-wpb-tst"
+              }
+            ],
+            "network_performance_config": [],
+            "params": [],
+            "project": "vse-wpb-tst",
+            "reservation_affinity": [],
+            "resource_policies": [],
+            "scheduling": [
+              {
+                "automatic_restart": true,
+                "instance_termination_action": "",
+                "local_ssd_recovery_timeout": [],
+                "min_node_cpus": 0,
+                "node_affinities": [],
+                "on_host_maintenance": "MIGRATE",
+                "preemptible": false,
+                "provisioning_model": "STANDARD"
+              }
+            ],
+            "scratch_disk": [],
+            "self_link": "https://www.googleapis.com/compute/v1/projects/vse-wpb-tst/zones/europe-north1-a/instances/wpb-tst-varisilma-vm",
+            "service_account": [],
+            "shielded_instance_config": [
+              {
+                "enable_integrity_monitoring": true,
+                "enable_secure_boot": false,
+                "enable_vtpm": true
+              }
+            ],
+            "tags": [
+              "allow-https",
+              "allow-https-vse-wpb-tst"
+            ],
+            "tags_fingerprint": "WNGq7HXmHtg=",
+            "timeouts": null,
+            "zone": "europe-north1-a"
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "metadata"
+              },
+              {
+                "type": "index",
+                "value": {
+                  "value": "ssh-keys",
+                  "type": "string"
+                }
+              }
+            ]
+          ],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiNiJ9",
+          "dependencies": [
+            "module.gcp_compute_instance.google_compute_disk.disk",
+            "module.ssh_key.tls_private_key.ssh_key_vm"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.ssh_key",
+      "mode": "managed",
+      "type": "local_file",
+      "name": "public_key",
+      "provider": "provider[\"registry.terraform.io/hashicorp/local\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "content": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9fiB0GgdnkT0Tudyce63ya2AqDFqGkt8/hMYcNk7dr\n",
+            "content_base64": null,
+            "content_base64sha256": "0chr7YlCWDyUvrUBqSqo9RMjJ/Vl7SMs4F9ki2Q6weE=",
+            "content_base64sha512": "Wy8SAkrhbLYwR8t+sYs0jvEZ2WgplUbo8ugL7DlSIH7gBLyq00XJr3kooLroW+wtDbVWnbvtgKwGaXlQqZl/aQ==",
+            "content_md5": "7079704b60fee84ce7391cfb160f2873",
+            "content_sha1": "61bea0b36a74bbbfa70bd9ce9e5b804592fd41e9",
+            "content_sha256": "d1c86bed8942583c94beb501a92aa8f5132327f565ed232ce05f648b643ac1e1",
+            "content_sha512": "5b2f12024ae16cb63047cb7eb18b348ef119d968299546e8f2e80bec3952207ee004bcaad345c9af7928a0bae85bec2d0db5569dbbed80ac06697950a9997f69",
+            "directory_permission": "0777",
+            "file_permission": "0644",
+            "filename": "/home/appusr/.ssh/.str/vse-wpb-tst-varisilma.pub",
+            "id": "61bea0b36a74bbbfa70bd9ce9e5b804592fd41e9",
+            "sensitive_content": null,
+            "source": null
+          },
+          "sensitive_attributes": [],
+          "dependencies": [
+            "module.ssh_key.tls_private_key.ssh_key_vm"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.ssh_key",
+      "mode": "managed",
+      "type": "local_sensitive_file",
+      "name": "private_key",
+      "provider": "provider[\"registry.terraform.io/hashicorp/local\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "content": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtz\nc2gtZWQyNTUxOQAAACDvX4gdBoHZ5E9E7ncnHut8mtgKgxahpLfP4TGHDZO3awAA\nAIg4NG+GODRvhgAAAAtzc2gtZWQyNTUxOQAAACDvX4gdBoHZ5E9E7ncnHut8mtgK\ngxahpLfP4TGHDZO3awAAAECS8wiP6mcBBXlSR6MXULzz9xdKN4ZRInF1IHZZWkgk\nne9fiB0GgdnkT0Tudyce63ya2AqDFqGkt8/hMYcNk7drAAAAAAECAwQF\n-----END OPENSSH PRIVATE KEY-----\n",
+            "content_base64": null,
+            "content_base64sha256": "v0cLn9Mv7wlL9LSoJAXtDsDGanwF9gTk5x2CoqUrEiY=",
+            "content_base64sha512": "4GQ+lhqa8yRvWsT0YmZDBMFKQyfxndXOiZF+5uHzSpq2AnA5Rr90ZxKQ+0oHIMi3ZxDWOd+R/0/q8YvuxO3a5g==",
+            "content_md5": "ef95b753221c146270203efa99e134ba",
+            "content_sha1": "b86c4e170f8d63284e4a4764147808ecee13affe",
+            "content_sha256": "bf470b9fd32fef094bf4b4a82405ed0ec0c66a7c05f604e4e71d82a2a52b1226",
+            "content_sha512": "e0643e961a9af3246f5ac4f462664304c14a4327f19dd5ce89917ee6e1f34a9ab602703946bf74671290fb4a0720c8b76710d639df91ff4feaf18beec4eddae6",
+            "directory_permission": "0700",
+            "file_permission": "0600",
+            "filename": "/home/appusr/.ssh/.str/vse-wpb-tst-varisilma.pk",
+            "id": "b86c4e170f8d63284e4a4764147808ecee13affe",
+            "source": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "content"
+              }
+            ]
+          ],
+          "dependencies": [
+            "module.ssh_key.tls_private_key.ssh_key_vm"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.ssh_key",
+      "mode": "managed",
+      "type": "tls_private_key",
+      "name": "ssh_key_vm",
+      "provider": "provider[\"registry.terraform.io/hashicorp/tls\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "algorithm": "ED25519",
+            "ecdsa_curve": "P224",
+            "id": "188652e2a2c383016220dde27846467905b27b90",
+            "private_key_openssh": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtz\nc2gtZWQyNTUxOQAAACDvX4gdBoHZ5E9E7ncnHut8mtgKgxahpLfP4TGHDZO3awAA\nAIg4NG+GODRvhgAAAAtzc2gtZWQyNTUxOQAAACDvX4gdBoHZ5E9E7ncnHut8mtgK\ngxahpLfP4TGHDZO3awAAAECS8wiP6mcBBXlSR6MXULzz9xdKN4ZRInF1IHZZWkgk\nne9fiB0GgdnkT0Tudyce63ya2AqDFqGkt8/hMYcNk7drAAAAAAECAwQF\n-----END OPENSSH PRIVATE KEY-----\n",
+            "private_key_pem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIJLzCI/qZwEFeVJHoxdQvPP3F0o3hlEicXUgdllaSCSd\n-----END PRIVATE KEY-----\n",
+            "private_key_pem_pkcs8": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIJLzCI/qZwEFeVJHoxdQvPP3F0o3hlEicXUgdllaSCSd\n-----END PRIVATE KEY-----\n",
+            "public_key_fingerprint_md5": "70:01:ff:f6:a8:e8:32:86:ac:a6:5a:7b:9e:33:e8:87",
+            "public_key_fingerprint_sha256": "SHA256:iAokjQmGWt6/ghgy5XygevhhdRpOK3XuxzPd+9LK1Xc",
+            "public_key_openssh": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9fiB0GgdnkT0Tudyce63ya2AqDFqGkt8/hMYcNk7dr\n",
+            "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA71+IHQaB2eRPRO53Jx7rfJrYCoMWoaS3z+Exhw2Tt2s=\n-----END PUBLIC KEY-----\n",
+            "rsa_bits": 2048
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    }
+  ]
+}

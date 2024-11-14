@@ -1,0 +1,123 @@
+FROM ubuntu:20.04
+
+ARG ENV
+ARG UID=333
+ARG GID=333
+ARG PROJ="psql-client-docker-img"
+
+ENV PROJ="$PROJ"
+ENV MODULE="psql-client"
+ENV APPUSR="appusr"
+ENV APPGRP="appgrp"
+ENV TERM="xterm-256color"
+ENV PS1="`date \"+%F %T\"` \u@\h  \w \n\n  "
+ENV TZ="Etc/UTC"
+ENV LANG sv_SE.UTF-8
+ENV ENV=$ENV
+ENV HOME="/home/$APPUSR"
+
+
+# This is the dir to use to edit the source code.
+ENV PROJ_PATH="/opt/spe/$PROJ"
+ENV IMG_PROJ_PATH="$HOME/opt/spe/$PROJ"
+
+# workaround the interactivity questions on ubuntu for some rare binary installers
+RUN echo \n\
+  XKBMODEL="pc105" \n\
+  XKBLAYOUT="se" \n\
+  XKBVARIANT="" \n\
+  XKBOPTIONS="" \n\
+  BACKSPACE="guess" \n\
+  > /etc/default/keyboard
+
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get upgrade -y && apt-get install -y \
+  software-properties-common lsb-release sudo curl net-tools wget \
+  git zip unzip build-essential bsdmainutils \
+  perl make vim ufw jq snapd debconf-utils dialog telnet
+# STOP ::: deploy base
+
+# START ::: postgres
+
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+RUN RELEASE=$(lsb_release -cs) && \
+  echo "deb http://apt.postgresql.org/pub/repos/apt/ ${RELEASE}"-pgdg main | \
+  sudo tee  /etc/apt/sources.list.d/pgdg.list
+ENV PGVERSION 14
+ENV PGLOG  "/var/log/postgresql"
+ENV PGBASE "/var/lib/postgresql"
+ENV PGPASSWORD_FILE ${PGBASE}/pwfile
+ENV PGDATA ${PGBASE}/${PGVERSION}/main
+
+ENV PGHOST=db
+ENV PGPORT=54321
+ENV PGDB=card
+ENV PGUSER=usr_card
+ENV PGPASSWORD=mmpker
+
+ENV PGCNF "/etc/postgres"
+ENV PGCONFIG_DIR /etc/postgresql/${PGVERSION}/main
+ENV PGCONFIG_FILE ${PGCONFIG_DIR}/postgresql.conf
+ENV PGBINDIR /usr/lib/postgresql/${PGVERSION}/bin
+
+RUN apt-get update && apt-get upgrade -y \
+  && apt-get install -y --no-install-recommends locales \
+  && locale-gen $LANG && update-locale LANG=$LANG \
+  && apt-get install -y --no-install-recommends \
+  postgresql-$PGVERSION \
+  postgresql-client-$PGVERSION \
+  postgresql-contrib-$PGVERSION \
+  postgresql-doc-$PGVERSION \
+  openssl \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /tmp/*
+
+RUN echo $(openssl rand -base64 16 | tr '+/' '-_' | tr -d '=') > $PGPASSWORD_FILE
+RUN echo "postgres:$(cat $PGPASSWORD_FILE)" | sudo chpasswd
+RUN mkdir -p $PGCNF && chmod 775 $PGCNF
+
+RUN mkdir -p "$PGBASE" && chown -R postgres:postgres $PGBASE \
+  && chown -R postgres:postgres $PGCNF \
+  && chown -R postgres:postgres $PGLOG \
+  && mkdir -p $PGDATA/main && chown -R postgres:postgres $PGDATA \
+  && chmod -R 0750 $PGDATA \
+  && mkdir -p /var/run/postgresql/$PGVERSION-main.pgstat_tmp \
+  && chown -R postgres:postgres /var/run/postgresql && chmod g+s /var/run/postgresql
+
+
+USER root
+
+ADD --chown=postgres:postgres cnf/pgsql/etc/postgresql/${PGVERSION}/main/postgresql.conf \
+  /etc/postgresql/${PGVERSION}/main/postgresql.conf
+ADD --chown=postgres:postgres cnf/pgsql/etc/postgresql/${PGVERSION}/main/pg_hba.conf \
+  /etc/postgresql/${PGVERSION}/main/pg_hba.conf
+
+EXPOSE 54321
+
+# START ::: Enable host to container edit of proj code on ubuntu and mac.
+RUN test -z $(getent group $GID | cut -d: -f1) || \
+  groupmod -g $((GID+1000)) $(getent group $GID | cut -d: -f1)
+
+RUN addgroup --gid $GID $APPGRP
+RUN adduser \
+  --gid $GID \
+  --shell "/bin/bash" \
+  --home "$HOME" \
+  --uid $UID \
+  $APPUSR && exit 0
+
+RUN echo "$APPUSR:Eaa6923-?HkgS" | sudo chpasswd
+
+RUN echo "$APPUSR ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN echo "export PS1=\"$PS1\"" >> /home/$APPUSR/.bashrc
+# STOP  ::: Enable host to container edit of proj code on ubuntu and mac.
+
+USER $APPUSR
+ADD --chown=$APPUSR:$APPGRP . "$IMG_PROJ_PATH"
+
+RUN chmod 755 "$IMG_PROJ_PATH/src/bash/run/docker-init-${MODULE}.sh"
+
+
+WORKDIR "$HOME""$PROJ_PATH"
+
+CMD exec /bin/bash -c "$IMG_PROJ_PATH/src/bash/run/docker-init-${MODULE}.sh"

@@ -1,0 +1,109 @@
+FROM python:3.8.3-alpine
+
+ARG ORG
+ARG APP
+ARG ENV
+ARG UID
+ARG GID
+ARG PROJ
+ARG BASE_PATH
+ARG ORG_DIR
+ARG PROJ_PATH
+
+ENV ORG=$ORG
+ENV APP=$APP
+ENV ENV=$ENV
+ENV PROJ=$PROJ
+ENV BASE_PATH=$BASE_PATH
+ENV ORG_DIR=$ORG_DIR
+
+
+ENV APPUSR=appusr
+ENV APPGRP=appgrp
+ENV PS1="`date \"+%F %T\"` \u@\h  \w \n\n  "
+ENV PROJ_PATH="/$BASE_PATH/$ORG_DIR/$PROJ"
+ENV HOME_PROJ_PATH="/home/$APPUSR/$BASE_PATH/$ORG_DIR/$PROJ"
+ENV EDITOR="vim"
+
+ENV TERM="xterm-256color"
+
+VOLUME $PROJ_PATH
+
+# START ::: install bins
+RUN apk update && \
+  apk upgrade && \
+  apk add --no-cache \
+  bash binutils vim perl jq wget \
+  curl zip unzip busybox-extras \
+  su-exec sudo shadow net-tools \
+  build-base gcc openssl-dev git \
+  libmagic ttf-freefont make jq \
+  python3-dev jpeg-dev zlib-dev \
+  coreutils libffi-dev util-linux
+
+# required for pandas: check https://stackoverflow.com/a/71053989
+RUN apk --update add gcc build-base freetype-dev libpng-dev openblas-dev
+
+RUN wget https://bootstrap.pypa.io/get-pip.py ; sudo python3 get-pip.py ; sudo rm -v get-pip.py
+
+# Installs latest Chromium (92) package.
+RUN apk add --no-cache \
+  chromium \
+  nss \
+  freetype \
+  harfbuzz \
+  ca-certificates \
+  ttf-freefont
+# STOP ::: install bins
+
+RUN pip install wheel
+
+# START ::: Enable host to container edit of proj code on ubuntu and mac.
+RUN test -z $(getent group $GID | cut -d: -f1) || \
+  groupmod -g $((GID+1000)) $(getent group $GID | cut -d: -f1)
+
+RUN set -x ; addgroup -g "$GID" -S "$APPGRP" && \
+  adduser \
+  --disabled-password \
+  -g "$GID" \
+  -D \
+  -s "/bin/bash" \
+  -h "/home/$APPUSR" \
+  -u "$UID" \
+  -G "$APPGRP" "$APPUSR" && exit 0 ; exit 1
+
+RUN echo "$APPUSR ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN echo "export PS1=\"$PS1\"" >> /home/$APPUSR/.bashrc
+
+USER $APPUSR
+ENV USER=$APPUSR
+ENV GROUP=$APPGRP
+# STOP  ::: enable host to container edit of proj code on ubuntu and mac.
+
+# ::: adding OS APPUSER and APPGROUP
+ADD --chown=$APPUSR:$APPGRP "." "$HOME_PROJ_PATH"
+
+USER $APPUSR
+WORKDIR $PROJ_PATH
+
+RUN SUB_COMPONENT=user-group-automate "$HOME_PROJ_PATH/src/bash/run/run.sh" -a do_check_install_py_modules
+
+# install awscli
+RUN pip3 install --upgrade pip \
+  && pip3 install --no-cache-dir awscli \
+  && sudo rm -rf /var/cache/apk/* \
+  && sudo apk add aws-cli \
+  && aws --version
+
+# install aws-iam-authenticator
+RUN echo -e "\n installing the aws-iam-authenticator - this might take even 3 minutes ... \n\n" && \
+  mkdir -p /home/$APPUSR/bin/ && curl -o /home/$APPUSR/bin/aws-iam-authenticator \
+  'https://amazon-eks.s3.us-west-2.amazonaws.com/1.15.10/2020-02-22/bin/linux/amd64/aws-iam-authenticator' && \
+  sudo chmod +x /home/$APPUSR/bin/aws-iam-authenticator
+
+ENV PATH /home/$APPUSR/bin:${PATH}
+
+# but use the proj root dir to write the code on and interact
+WORKDIR $PROJ_PATH
+
+CMD exec /bin/bash -c "${HOME_PROJ_PATH}/src/bash/run/docker-init-user-group-automate.sh"

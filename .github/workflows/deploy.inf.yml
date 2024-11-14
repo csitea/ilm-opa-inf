@@ -1,0 +1,158 @@
+name: "deploy: app-inf"
+
+on:
+  repository_dispatch:
+    types: deploy-inf
+  workflow_dispatch:
+    inputs:
+      step:
+        description: The step to execute
+        required: true
+        type: string
+      action:
+        description: The action to execute
+        type: choice
+        required: true
+        options:
+          - provision
+          - divest
+      env:
+        description: Environment to deploy the infrastructure.
+        type: choice
+        required: true
+        options:
+          - dev
+          - tst
+          - prd
+        default: "dev"
+      src_repo_branch:
+        description: The source branch to use from the source repository.
+        type: string
+        required: true
+        default: master
+
+env:
+  ENV: "${{ github.event.inputs.env }}"
+  STEP: "${{ github.event.inputs.step }}"
+  ACTION: "${{ github.event.inputs.action }}"
+  SRC_REPO_BRANCH: "${{ github.event.inputs.src_repo_branch }}"
+  ORG: ${{ vars.ORG }}
+  APP: ${{ vars.APP }}
+  TERM: xterm-256color
+  PROJ: ${{ vars.PROJ }}
+  BASE_PATH: /home/runner/work/${{ vars.PROJ }}/${{ vars.PROJ }}/opt
+
+jobs:
+  build-containers-and-provision:
+    runs-on: ubuntu-latest
+    steps:
+      - name: set ENV if called remotely or not defined
+        run: |
+          if [[ "${{ env.ENV }}" == "" ]]; then
+            if [[ "${{ github.event.client_payload.env }}" == "" ]]; then
+              echo ENV=dev >> $GITHUB_ENV
+            else
+              echo ENV=${{ github.event.client_payload.env }} >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: set SRC_REPO_BRANCH if called remotely
+        run: |
+          if [[ "${{ env.SRC_REPO_BRANCH }}" == "" ]]; then
+            if [[ "${{ github.event.client_payload.src_repo_branch }}" == "" ]]; then
+              echo SRC_REPO_BRANCH=master >> $GITHUB_ENV
+            else
+              echo SRC_REPO_BRANCH=${{ github.event.client_payload.src_repo_branch }} >> $GITHUB_ENV
+            fi
+
+          fi
+
+      - name: git clone the repos
+        run: |
+          mkdir -p ${{ env.BASE_PATH }}/${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}
+          cd ${{ env.BASE_PATH }}/${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}
+          gh api orgs/csitea/teams/team-${{ env.ORG }}-${{ env.APP }}-int/repos | jq -r '.[].clone_url' | sed "s/https:\/\//https:\/\/${{ secrets.ALL_CSI_GITHUB_TOKEN }}@/" | xargs -L1 git clone
+          ls -la ${{ env.BASE_PATH }}/${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.ALL_CSI_GITHUB_TOKEN }}
+
+      - name: define ENV_U ORG_U APP_U var
+        working-directory: ${{ env.BASE_PATH }}/${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}/${{ env.ORG }}-${{ env.APP }}-utl/
+        run: |
+          echo ORG_U=$(python -c 'import sys ; print(sys.argv[1].upper())' "${{ env.ORG }}") >> $GITHUB_ENV
+          echo APP_U=$(python -c 'import sys ; print(sys.argv[1].upper())' "${{ env.APP }}") >> $GITHUB_ENV
+          echo ENV_U=$(python -c 'import sys ; print(sys.argv[1].upper())' "${{ env.ENV }}") >> $GITHUB_ENV
+
+      # make this step generic (must not mention specific org or app)
+      - name: create folders for the secret and write the secrets in the folders
+        run: |
+          mkdir -p  $HOME/.gcp/.${{ env.ORG }}
+          mkdir -p  $HOME/.ssh/.${{ env.ORG }}
+
+          echo "${{ secrets.EARLY_CREDS }}" > $HOME/.ssh/.${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}.early-credentials.json
+
+          echo "${{ secrets.ID_RSA }}" > $HOME/.ssh/.${{ env.ORG }}/id_rsa.${{ env.ORG }}
+          chmod 600 $HOME/.ssh/.${{ env.ORG }}/id_rsa.${{ env.ORG }}
+
+          echo DYNAMIC_GCP_KEY_NAME=GCP_KEY_${{ env.ORG_U }}_${{ env.APP_U }}_${{ env.ENV_U }} >> $GITHUB_ENV
+
+      - name: wirte the GCP key
+        run: |
+          echo start writing gcp ket to runner
+          echo "${{ secrets[ env.DYNAMIC_GCP_KEY_NAME ] }}" > $HOME/.gcp/.${{ env.ORG }}/key-${{ env.ORG }}-${{ env.APP }}-${{ env.ENV }}.json
+
+      - name: build docker
+        working-directory: ${{ env.BASE_PATH }}/${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}/${{ env.ORG }}-${{ env.APP }}-utl/
+        run: |
+          cp -v ./src/docker/.env.cin ./src/docker/.env
+          cp -v ./src/docker/docker-compose-${{ env.ORG }}-${{ env.ENV }}-inf.cin.yaml ./src/docker/docker-compose-${{ env.ORG }}-${{ env.ENV }}-inf.yaml
+          export GITHUB_TOKEN='${{ secrets.ALL_CSI_GITHUB_TOKEN }}'
+          make do-setup-${{ env.ORG }}-${{ env.ENV }}-inf-no-cache
+          docker ps
+
+      # The ssh key should be written to the runner only when the secret does exist
+      - name: Write the dynamic key name to GITHUB_ENV
+        run: |
+          echo DYNAMIC_GCP_SSH_KEY=SSH_KEY_${{ env.ORG_U }}_${{ env.APP_U }}_${{ env.ENV_U }} >> $GITHUB_ENV
+
+      - name: write the SSH key to .ssh
+        run: |
+          set -euo pipefail
+          set -x
+          echo start writing ssh key to runner
+          mkdir -p $HOME/.ssh/.${{ env.ORG }} && chmod -R 700 $HOME/.ssh/
+          touch $HOME/.ssh/known_hosts
+
+          YAML_CONF_FILE="${{ env.BASE_PATH }}/${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}/${{ env.ORG }}-${{ env.APP }}-cnf/${{ env.APP }}/${{ env.ENV }}.env.yaml"
+          DOMAIN=$(yq '.env.dns.wpb_fqdn' $YAML_CONF_FILE)
+
+          ssh-keyscan -H ${DOMAIN} >> ~/.ssh/known_hosts
+          echo "${{ secrets[ env.DYNAMIC_GCP_SSH_KEY ] }}" > $HOME/.ssh/.${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}-${{ env.ENV }}-${{ env.APP }}.pk
+          chmod 600 $HOME/.ssh/.${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}-${{ env.ENV }}-${{ env.APP }}.pk
+
+      # #Get the debian ssh key from the github secrets (rewite this step)
+      # - name: Get debian ssh key if exist
+      #   run: |
+      #     set +e
+      #     docker exec -e ORG=${{ env.ORG }} -e APP=${{ env.APP }} -e ENV=${{ env.ENV }} -e USER=debian con-${{ env.ORG }}-${{ env.ENV }}-tf-runner /bin/bash -c "/home/runner/work/${{ env.ORG }}-${{ env.ENV }}-wui/${{ env.ORG }}-${{ env.ENV }}-wui/opt/${{ env.ORG }}/${{ env.ORG }}-${{ env.ENV }}/${{ env.ORG }}-${{ env.ENV }}-utl/run -a do_get_gcp_sm_ssh_key"
+
+      #     set -e
+      #     ls -la $HOME/.ssh/.${{ env.ORG }}
+      #     export FILE_PATH="$HOME/.ssh/.${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}-${{ env.ENV }}-dhi-debian.pk"
+      #     export FILE_NEW_NAME="$HOME/.ssh/.${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}-${{ env.ENV }}-dhi.pk"
+      #     test -f ${FILE_PATH} && chmod 600 ${FILE_PATH}
+      #     test -f ${FILE_PATH} && mv -v ${FILE_PATH} ${FILE_NEW_NAME}
+      #     docker exec con-${{ env.ORG }}-${{ env.ENV }}-tf-runner /bin/bash -c "ls -la /home/appusr/.ssh/.${{ env.ORG }}"
+
+      - name: Add GitHub.com to known hosts
+        run: ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+
+      - name: Do provision or divest
+        working-directory: ${{ env.BASE_PATH }}/${{ env.ORG }}/${{ env.ORG }}-${{ env.APP }}/${{ env.ORG }}-${{ env.APP }}-utl/
+        run: |
+          echo start provisioning
+          ORG=${{ env.ORG }} APP=${{ env.APP }} ENV=${{ env.ENV }} STEP=${{ env.STEP }} make do-${{ env.ACTION }}
+
+      - name: Test the www-data key
+        run: |
+          ls -la $HOME/.ssh/.${{ env.ORG }}

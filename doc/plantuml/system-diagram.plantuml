@@ -1,0 +1,91 @@
+@startuml
+!define GCP #3367d6
+!define EXTERNAL #c7e8ac
+!define LOCAL #fff1b5
+
+skinparam rectangle {
+    BackgroundColor<<GCP>> GCP
+    BorderColor #236ab1
+    BackgroundColor<<EXTERNAL>> EXTERNAL
+    BorderColor #7fb03f
+    BackgroundColor<<LOCAL>> LOCAL
+    BorderColor #e6c84c
+}
+
+actor "User" as User
+
+rectangle "Google Cloud Platform" <<GCP>> {
+    rectangle "Compute Engine VM (Debian 11)" as VM {
+        component "Nginx" as WebServer
+        component "PHP 7.4-FPM" as PHP
+        component "WordPress" as WP
+        component "WP-CLI" as WPCLI
+        database "MariaDB" as DB
+        component "Certbot" as Certbot
+    }
+
+    cloud "Cloud DNS" as DNS #lightgrey
+    database "Secret Manager" as SecretManager
+    storage "Storage Bucket" as Bucket
+    component "Firewall Rules" as Firewall
+}
+
+rectangle "GitHub" <<EXTERNAL>> {
+    file "SSH Key Secret" as GitHubSecret
+}
+
+rectangle "Local Environment" <<LOCAL>> {
+    component "Terraform" as TF
+    component "Ansible" as Ansible
+    file "SSH Keys" as SSHKeys
+    folder "Custom WP Themes" as Themes
+    folder "Custom WP Plugins" as Plugins
+}
+
+User -up-> Firewall : HTTP/HTTPS
+Firewall -up-> WebServer : Allow 80/443
+
+TF -up-> VM : Provisions
+TF -up-> SecretManager : Manages
+TF -up-> Bucket : Creates
+TF -up-> Firewall : Configures
+TF -up-> DNS : Configures (Commented Out)
+
+Ansible -up-> VM : Configures
+Ansible -up-> WebServer : Installs & Configures
+Ansible -up-> PHP : Installs & Configures
+Ansible -up-> WP : Installs & Configures
+Ansible -up-> DB : Sets Up
+Ansible -up-> Certbot : Installs & Configures
+Ansible -up-> WPCLI : Installs
+
+SSHKeys -up-> VM : Access
+SSHKeys -up-> GitHubSecret : Stored As
+
+SecretManager -- VM : Provides Secrets
+Bucket -- WebServer : Hosts Static Content
+
+Themes -up-> WP : Synced
+Plugins -up-> WP : Synced
+
+WebServer --> PHP : Passes requests
+PHP --> WP : Executes
+WP --> DB : Queries
+WPCLI --> WP : Manages
+Certbot --> WebServer : Configures SSL
+
+note right of DNS
+  Manual DNS configuration
+  Propagation check before SSL
+end note
+
+note right of WebServer
+  Configured for WordPress
+  Increased upload limits
+end note
+
+note right of PHP
+  Increased upload limits
+  Various WP extensions
+end note
+@enduml
